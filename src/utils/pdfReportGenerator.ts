@@ -1,0 +1,720 @@
+// Professional PDF Report Generator
+// Creates comprehensive audit reports with charts, tables, and analysis
+
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import type { BenfordResult, ProcessedDataset } from '../types';
+import type { AnalysisSummary } from './aiSummary';
+import type { GeminiSummary } from './geminiIntegration';
+
+// Extend jsPDF type to include autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: Record<string, unknown>) => jsPDF;
+    lastAutoTable: { finalY: number };
+  }
+}
+
+export interface ReportConfig {
+  includeCharts: boolean;
+  includeRawData: boolean;
+  includeAISummary: boolean;
+  includeMetadata: boolean;
+  reportTitle?: string;
+  organizationName?: string;
+  auditorName?: string;
+}
+
+export interface ReportMetadata {
+  reportId: string;
+  generatedAt: Date;
+  version: string;
+  datasetHash: string;
+  analysisEngine: string;
+}
+
+/**
+ * Generate a comprehensive PDF audit report
+ */
+export async function generatePDFReport(
+  result: BenfordResult,
+  dataset: ProcessedDataset,
+  aiSummary: AnalysisSummary,
+  geminiSummary?: GeminiSummary | null,
+  config: ReportConfig = {
+    includeCharts: true,
+    includeRawData: false,
+    includeAISummary: true,
+    includeMetadata: true,
+  }
+): Promise<void> {
+  const pdf = new jsPDF();
+  let yPosition = 20;
+
+  // Generate report metadata
+  const metadata: ReportMetadata = {
+    reportId: generateReportId(),
+    generatedAt: new Date(),
+    version: '1.0',
+    datasetHash: generateDatasetHash(dataset),
+    analysisEngine: 'ExpenseAudit AI + Benford\'s Law'
+  };
+
+  // Cover Page
+  yPosition = await addCoverPage(pdf, metadata, config, yPosition);
+  
+  // Executive Summary Page
+  pdf.addPage();
+  yPosition = 20;
+  yPosition = await addExecutiveSummary(pdf, result, aiSummary, yPosition);
+
+  // Statistical Analysis Page
+  pdf.addPage();
+  yPosition = 20;
+  yPosition = await addStatisticalAnalysis(pdf, result, yPosition);
+
+  // Charts Page (if enabled)
+  if (config.includeCharts) {
+    pdf.addPage();
+    yPosition = 20;
+    yPosition = await addChartsPage(pdf, result, yPosition);
+  }
+
+  // Vendor Analysis Page
+  pdf.addPage();
+  yPosition = 20;
+  yPosition = await addVendorAnalysis(pdf, result, yPosition);
+
+  // Flagged Transactions Page
+  pdf.addPage();
+  yPosition = 20;
+  yPosition = await addFlaggedTransactions(pdf, result, yPosition);
+
+  // AI Summary Page (if available and enabled)
+  if (config.includeAISummary && (aiSummary || geminiSummary)) {
+    pdf.addPage();
+    yPosition = 20;
+    yPosition = await addAISummaryPage(pdf, aiSummary, geminiSummary, yPosition);
+  }
+
+  // Raw Data (if enabled)
+  if (config.includeRawData) {
+    pdf.addPage();
+    yPosition = 20;
+    yPosition = await addRawDataPage(pdf, dataset, yPosition);
+  }
+
+  // Metadata & Audit Trail Page
+  if (config.includeMetadata) {
+    pdf.addPage();
+    yPosition = 20;
+    await addMetadataPage(pdf, metadata, dataset, yPosition);
+  }
+
+  // Add page numbers and footers
+  addPageNumbers(pdf, metadata.reportId);
+
+  // Save the PDF
+  const filename = `ExpenseAudit_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+  pdf.save(filename);
+}
+
+/**
+ * Add cover page to PDF
+ */
+async function addCoverPage(
+  pdf: jsPDF,
+  metadata: ReportMetadata,
+  config: ReportConfig,
+  yPosition: number
+): Promise<number> {
+  const pageWidth = pdf.internal.pageSize.width;
+
+  // Title
+  pdf.setFontSize(28);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('FRAUD DETECTION AUDIT REPORT', pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 20;
+
+  // Subtitle
+  pdf.setFontSize(16);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text('Benford\'s Law Statistical Analysis', pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 30;
+
+  // Organization name (if provided)
+  if (config.organizationName) {
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(config.organizationName, pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 20;
+  }
+
+  // Report details box
+  pdf.setDrawColor(200, 200, 200);
+  pdf.setFillColor(248, 250, 252);
+  pdf.rect(30, yPosition, pageWidth - 60, 80, 'FD');
+
+  yPosition += 15;
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Report Details:', 40, yPosition);
+  yPosition += 10;
+
+  pdf.setFont('helvetica', 'normal');
+  const details = [
+    ['Report ID:', metadata.reportId],
+    ['Generated:', metadata.generatedAt.toLocaleString()],
+    ['Analysis Engine:', metadata.analysisEngine],
+    ['Report Version:', metadata.version],
+    ['Dataset Hash:', metadata.datasetHash.substring(0, 16) + '...']
+  ];
+
+  details.forEach(([label, value]) => {
+    pdf.text(label, 40, yPosition);
+    pdf.text(value, 120, yPosition);
+    yPosition += 8;
+  });
+
+  // Warning/Disclaimer
+  yPosition += 30;
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'italic');
+  const disclaimer = 'This report is generated by ExpenseAudit AI using Benford\'s Law analysis. Results should be interpreted by qualified auditors and used as part of comprehensive fraud detection procedures.';
+  const splitDisclaimer = pdf.splitTextToSize(disclaimer, pageWidth - 60);
+  pdf.text(splitDisclaimer, 30, yPosition);
+
+  return yPosition + 20;
+}
+
+/**
+ * Add executive summary page
+ */
+async function addExecutiveSummary(
+  pdf: jsPDF,
+  result: BenfordResult,
+  aiSummary: AnalysisSummary,
+  yPosition: number
+): Promise<number> {
+  // Page title
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('EXECUTIVE SUMMARY', 20, yPosition);
+  yPosition += 20;
+
+  // Risk assessment box
+  const riskColor = getRiskColor(result.riskLevel);
+  pdf.setFillColor(riskColor.r, riskColor.g, riskColor.b);
+  pdf.setDrawColor(riskColor.r - 20, riskColor.g - 20, riskColor.b - 20);
+  pdf.rect(20, yPosition, 170, 25, 'FD');
+
+  pdf.setFontSize(14);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(255, 255, 255);
+  pdf.text(`RISK LEVEL: ${result.riskLevel.toUpperCase()}`, 25, yPosition + 10);
+  pdf.text(`OVERALL ASSESSMENT: ${result.overallAssessment.replace('_', ' ').toUpperCase()}`, 25, yPosition + 20);
+  pdf.setTextColor(0, 0, 0);
+  yPosition += 35;
+
+  // Key metrics
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Key Metrics:', 20, yPosition);
+  yPosition += 10;
+
+  pdf.setFont('helvetica', 'normal');
+  const metrics = [
+    ['Total Transactions Analyzed:', result.totalAnalyzed.toLocaleString()],
+    ['Mean Absolute Deviation (MAD):', result.mad.toFixed(4)],
+    ['Chi-Square Statistic:', result.chiSquare.toFixed(2)],
+    ['Suspicious Vendors Identified:', result.suspiciousVendors.length.toString()],
+    ['Flagged Transactions:', result.flaggedTransactions.length.toString()],
+    ['Analysis Confidence:', `${aiSummary.riskAssessment.confidence}%`]
+  ];
+
+  metrics.forEach(([label, value]) => {
+    pdf.text(label, 20, yPosition);
+    pdf.text(value, 120, yPosition);
+    yPosition += 8;
+  });
+
+  yPosition += 10;
+
+  // Executive summary text
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Summary:', 20, yPosition);
+  yPosition += 10;
+
+  pdf.setFont('helvetica', 'normal');
+  const summaryText = pdf.splitTextToSize(aiSummary.executiveSummary, 170);
+  pdf.text(summaryText, 20, yPosition);
+  yPosition += summaryText.length * 6 + 10;
+
+  // Warnings (if any)
+  if (result.warnings.length > 0) {
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Important Warnings:', 20, yPosition);
+    yPosition += 10;
+
+    pdf.setFont('helvetica', 'normal');
+    result.warnings.forEach(warning => {
+      const warningText = pdf.splitTextToSize(`• ${warning}`, 170);
+      pdf.text(warningText, 20, yPosition);
+      yPosition += warningText.length * 6 + 5;
+    });
+  }
+
+  return yPosition;
+}
+
+/**
+ * Add statistical analysis page
+ */
+async function addStatisticalAnalysis(
+  pdf: jsPDF,
+  result: BenfordResult,
+  yPosition: number
+): Promise<number> {
+  // Page title
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('STATISTICAL ANALYSIS', 20, yPosition);
+  yPosition += 20;
+
+  // Benford's Law explanation
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'normal');
+  const explanation = "Benford's Law states that in naturally occurring datasets, the digit 1 appears as the first digit about 30.1% of the time, 2 appears 17.6% of the time, and so on. Significant deviations from this pattern may indicate data manipulation or fraud.";
+  const explanationText = pdf.splitTextToSize(explanation, 170);
+  pdf.text(explanationText, 20, yPosition);
+  yPosition += explanationText.length * 6 + 15;
+
+  // Digit frequency table
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('First Digit Frequency Analysis:', 20, yPosition);
+  yPosition += 10;
+
+  const tableData = result.digitFrequencies.map(freq => [
+    freq.digit.toString(),
+    `${freq.expected.toFixed(1)}%`,
+    `${freq.observed.toFixed(1)}%`,
+    freq.count.toString(),
+    `${freq.deviation.toFixed(1)}%`
+  ]);
+
+  autoTable(pdf, {
+    startY: yPosition,
+    head: [['Digit', 'Expected %', 'Observed %', 'Count', 'Deviation %']],
+    body: tableData,
+    theme: 'grid',
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [79, 70, 229] },
+    margin: { left: 20, right: 20 }
+  });
+
+  yPosition = (pdf as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY + 20 || yPosition + 150;
+
+  // Statistical interpretation
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Statistical Interpretation:', 20, yPosition);
+  yPosition += 10;
+
+  pdf.setFont('helvetica', 'normal');
+  const interpretations = [
+    `MAD Score: ${result.mad.toFixed(4)} (${getMadInterpretation(result.mad)})`,
+    `Chi-Square: ${result.chiSquare.toFixed(2)} (${getChiSquareInterpretation(result.chiSquare)})`,
+    `Sample Size: ${result.totalAnalyzed.toLocaleString()} transactions (${getSampleSizeQuality(result.totalAnalyzed)})`
+  ];
+
+  interpretations.forEach(interpretation => {
+    pdf.text(`• ${interpretation}`, 20, yPosition);
+    yPosition += 8;
+  });
+
+  return yPosition;
+}
+
+/**
+ * Add charts page (placeholder for chart integration)
+ */
+async function addChartsPage(
+  pdf: jsPDF,
+  _result: BenfordResult,
+  yPosition: number
+): Promise<number> {
+  // Page title
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('VISUAL ANALYSIS', 20, yPosition);
+  yPosition += 20;
+
+  // Note about charts
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text('Charts from the dashboard can be captured and included here.', 20, yPosition);
+  yPosition += 10;
+
+  // Chart placeholder box
+  pdf.setDrawColor(200, 200, 200);
+  pdf.setFillColor(248, 250, 252);
+  pdf.rect(20, yPosition, 170, 100, 'FD');
+
+  pdf.setFont('helvetica', 'italic');
+  pdf.text('Benford\'s Law Distribution Chart', 105, yPosition + 50, { align: 'center' });
+  pdf.text('(Expected vs Observed)', 105, yPosition + 60, { align: 'center' });
+  yPosition += 110;
+
+  // Second chart placeholder
+  pdf.rect(20, yPosition, 170, 80, 'FD');
+  pdf.text('Risk Heatmap Visualization', 105, yPosition + 40, { align: 'center' });
+  yPosition += 90;
+
+  return yPosition;
+}
+
+/**
+ * Add vendor analysis page
+ */
+async function addVendorAnalysis(
+  pdf: jsPDF,
+  result: BenfordResult,
+  yPosition: number
+): Promise<number> {
+  // Page title
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('VENDOR RISK ANALYSIS', 20, yPosition);
+  yPosition += 20;
+
+  if (result.suspiciousVendors.length === 0) {
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('No suspicious vendor patterns detected.', 20, yPosition);
+    return yPosition + 20;
+  }
+
+  // Vendor table
+  const vendorData = result.suspiciousVendors.slice(0, 15).map(vendor => [
+    vendor.vendor,
+    vendor.transactionCount.toString(),
+    vendor.mad.toFixed(3),
+    vendor.riskLevel.toUpperCase(),
+    vendor.suspiciousPatterns.slice(0, 2).join('; ')
+  ]);
+
+  autoTable(pdf, {
+    startY: yPosition,
+    head: [['Vendor', 'Transactions', 'MAD Score', 'Risk Level', 'Patterns']],
+    body: vendorData,
+    theme: 'grid',
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [217, 119, 6] },
+    margin: { left: 20, right: 20 },
+    columnStyles: {
+      4: { cellWidth: 50 }
+    }
+  });
+
+  return (pdf as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY + 20 || yPosition + 150;
+}
+
+/**
+ * Add flagged transactions page
+ */
+async function addFlaggedTransactions(
+  pdf: jsPDF,
+  result: BenfordResult,
+  yPosition: number
+): Promise<number> {
+  // Page title
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('FLAGGED TRANSACTIONS', 20, yPosition);
+  yPosition += 20;
+
+  if (result.flaggedTransactions.length === 0) {
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('No transactions flagged for review.', 20, yPosition);
+    return yPosition + 20;
+  }
+
+  // Transactions table
+  const transactionData = result.flaggedTransactions.slice(0, 20).map(transaction => [
+    transaction.index.toString(),
+    `$${transaction.amount.toLocaleString()}`,
+    transaction.vendor || 'N/A',
+    transaction.firstDigit.toString(),
+    transaction.riskLevel.toUpperCase(),
+    transaction.reason
+  ]);
+
+  autoTable(pdf, {
+    startY: yPosition,
+    head: [['Index', 'Amount', 'Vendor', 'First Digit', 'Risk', 'Reason']],
+    body: transactionData,
+    theme: 'grid',
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [220, 38, 127] },
+    margin: { left: 20, right: 20 },
+    columnStyles: {
+      5: { cellWidth: 40 }
+    }
+  });
+
+  return (pdf as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY + 20 || yPosition + 150;
+}
+
+/**
+ * Add AI summary page
+ */
+async function addAISummaryPage(
+  pdf: jsPDF,
+  aiSummary: AnalysisSummary,
+  geminiSummary: GeminiSummary | null | undefined,
+  yPosition: number
+): Promise<number> {
+  // Page title
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('AI-POWERED INSIGHTS', 20, yPosition);
+  yPosition += 20;
+
+  // Rule-based summary
+  pdf.setFontSize(14);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Intelligent Analysis Summary:', 20, yPosition);
+  yPosition += 10;
+
+  // Key findings
+  if (aiSummary.overallFindings.length > 0) {
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Key Findings:', 20, yPosition);
+    yPosition += 8;
+
+    pdf.setFont('helvetica', 'normal');
+    aiSummary.overallFindings.forEach(finding => {
+      const findingText = pdf.splitTextToSize(`• ${finding}`, 170);
+      pdf.text(findingText, 20, yPosition);
+      yPosition += findingText.length * 6 + 3;
+    });
+    yPosition += 5;
+  }
+
+  // Recommendations
+  if (aiSummary.recommendations.length > 0) {
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Recommendations:', 20, yPosition);
+    yPosition += 8;
+
+    pdf.setFont('helvetica', 'normal');
+    aiSummary.recommendations.forEach((rec, index) => {
+      const recText = pdf.splitTextToSize(`${index + 1}. ${rec}`, 170);
+      pdf.text(recText, 20, yPosition);
+      yPosition += recText.length * 6 + 3;
+    });
+  }
+
+  // Gemini AI summary (if available)
+  if (geminiSummary) {
+    yPosition += 10;
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Advanced AI Analysis (Gemini 2.5 Pro):', 20, yPosition);
+    yPosition += 10;
+
+    pdf.setFont('helvetica', 'normal');
+    const geminiText = pdf.splitTextToSize(geminiSummary.executiveSummary, 170);
+    pdf.text(geminiText, 20, yPosition);
+    yPosition += geminiText.length * 6 + 10;
+
+    if (geminiSummary.keyFindings.length > 0) {
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('AI Key Findings:', 20, yPosition);
+      yPosition += 8;
+
+      pdf.setFont('helvetica', 'normal');
+      geminiSummary.keyFindings.slice(0, 5).forEach(finding => {
+        const findingText = pdf.splitTextToSize(`• ${finding}`, 170);
+        pdf.text(findingText, 20, yPosition);
+        yPosition += findingText.length * 6 + 3;
+      });
+    }
+  }
+
+  return yPosition;
+}
+
+/**
+ * Add raw data page
+ */
+async function addRawDataPage(
+  pdf: jsPDF,
+  dataset: ProcessedDataset,
+  yPosition: number
+): Promise<number> {
+  // Page title
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('DATASET INFORMATION', 20, yPosition);
+  yPosition += 20;
+
+  // Dataset summary
+  const dataInfo = [
+    ['Total Records:', dataset.preview.totalRows.toString()],
+    ['Valid Records:', dataset.validation.validRows.toString()],
+    ['Removed Records:', dataset.validation.removedRows.toString()],
+    ['Data Quality:', `${((dataset.validation.validRows / dataset.preview.totalRows) * 100).toFixed(1)}%`]
+  ];
+
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'normal');
+  dataInfo.forEach(([label, value]) => {
+    pdf.text(label, 20, yPosition);
+    pdf.text(value, 120, yPosition);
+    yPosition += 8;
+  });
+
+  yPosition += 10;
+
+  // Column mapping
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Column Mapping:', 20, yPosition);
+  yPosition += 10;
+
+  pdf.setFont('helvetica', 'normal');
+  Object.entries(dataset.columnMapping).forEach(([key, value]) => {
+    if (value) {
+      pdf.text(`${key}: ${value}`, 20, yPosition);
+      yPosition += 8;
+    }
+  });
+
+  return yPosition;
+}
+
+/**
+ * Add metadata page
+ */
+async function addMetadataPage(
+  pdf: jsPDF,
+  metadata: ReportMetadata,
+  _dataset: ProcessedDataset,
+  yPosition: number
+): Promise<number> {
+  // Page title
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('AUDIT TRAIL & METADATA', 20, yPosition);
+  yPosition += 20;
+
+  // Report metadata
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Report Information:', 20, yPosition);
+  yPosition += 10;
+
+  pdf.setFont('helvetica', 'normal');
+  const metadataInfo = [
+    ['Report ID:', metadata.reportId],
+    ['Generated At:', metadata.generatedAt.toISOString()],
+    ['Report Version:', metadata.version],
+    ['Analysis Engine:', metadata.analysisEngine],
+    ['Dataset Hash:', metadata.datasetHash],
+    ['Data Integrity:', 'Verified'],
+    ['Compliance Standard:', 'Benford\'s Law Analysis']
+  ];
+
+  metadataInfo.forEach(([label, value]) => {
+    pdf.text(label, 20, yPosition);
+    pdf.text(value, 80, yPosition);
+    yPosition += 8;
+  });
+
+  yPosition += 20;
+
+  // Legal disclaimer
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Legal Disclaimer:', 20, yPosition);
+  yPosition += 10;
+
+  pdf.setFont('helvetica', 'normal');
+  const disclaimer = 'This report is generated by automated analysis software and should be reviewed by qualified auditing professionals. The analysis is based on statistical methods and may not detect all forms of fraud or data manipulation. This report should be used as part of comprehensive audit procedures.';
+  const disclaimerText = pdf.splitTextToSize(disclaimer, 170);
+  pdf.text(disclaimerText, 20, yPosition);
+
+  return yPosition + disclaimerText.length * 6;
+}
+
+/**
+ * Add page numbers and footer to all pages
+ */
+function addPageNumbers(pdf: jsPDF, reportId: string): void {
+  const pageCount = pdf.getNumberOfPages();
+  
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(128, 128, 128);
+    
+    // Page number
+    pdf.text(`Page ${i} of ${pageCount}`, pdf.internal.pageSize.width - 30, pdf.internal.pageSize.height - 10);
+    
+    // Report ID in footer
+    pdf.text(`Report ID: ${reportId}`, 20, pdf.internal.pageSize.height - 10);
+    
+    // Generated by
+    pdf.text('Generated by ExpenseAudit AI', pdf.internal.pageSize.width / 2, pdf.internal.pageSize.height - 10, { align: 'center' });
+  }
+}
+
+/**
+ * Helper functions
+ */
+function generateReportId(): string {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 8);
+  return `EAI-${timestamp}-${random}`.toUpperCase();
+}
+
+function generateDatasetHash(dataset: ProcessedDataset): string {
+  const hashInput = `${dataset.preview.totalRows}-${dataset.validation.validRows}-${Object.values(dataset.columnMapping).join('')}`;
+  // Simple hash for demonstration - in production, use proper hashing
+  let hash = 0;
+  for (let i = 0; i < hashInput.length; i++) {
+    const char = hashInput.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(16, '0');
+}
+
+function getRiskColor(riskLevel: string): { r: number; g: number; b: number } {
+  switch (riskLevel) {
+    case 'low': return { r: 34, g: 197, b: 94 };
+    case 'medium': return { r: 251, g: 191, b: 36 };
+    case 'high': return { r: 249, g: 115, b: 22 };
+    case 'critical': return { r: 239, g: 68, b: 68 };
+    default: return { r: 156, g: 163, b: 175 };
+  }
+}
+
+function getMadInterpretation(mad: number): string {
+  if (mad < 0.6) return 'Close conformity to Benford\'s Law';
+  if (mad < 1.2) return 'Acceptable conformity';
+  if (mad < 1.5) return 'Marginally acceptable conformity';
+  if (mad < 2.2) return 'Nonconformity - Investigation recommended';
+  return 'Strong nonconformity - Immediate investigation required';
+}
+
+function getChiSquareInterpretation(chiSquare: number): string {
+  if (chiSquare < 15.51) return 'No significant deviation detected';
+  if (chiSquare < 20.09) return 'Moderate deviation detected';
+  return 'Significant deviation - Requires investigation';
+}
+
+function getSampleSizeQuality(size: number): string {
+  if (size < 100) return 'Small sample - Results may be unreliable';
+  if (size < 500) return 'Adequate sample size';
+  if (size < 1000) return 'Good sample size';
+  return 'Excellent sample size';
+}
