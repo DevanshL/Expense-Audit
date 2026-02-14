@@ -79,22 +79,8 @@ The fastest way to run ExpenseAudit AI is using Docker Compose.
 
 ## ☸️ Enterprise Orchestration (Kubernetes)
 
-For large-scale production, use the provided K8s manifests:
-
-1. **Apply Manifests**:
-
-   ```bash
-   kubectl apply -f k8s/
-   ```
-
-2. **Check Resources**:
-
-   ```bash
-   kubectl get pods
-   kubectl get svc
-   ```
-
-3. **Access Internal Endpoints**: Use `Service` names (e.g., `http://backend:5000`) for inter-pod communication.
+> **🚀 Want to see the Enterprise Version?**
+> Switch to the `feature/enterprise-orchestration` branch to see full Kubernetes & Redis implementation.
 
 ---
 
