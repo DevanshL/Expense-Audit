@@ -148,6 +148,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/ai', aiRoutes);
 
+const errorHandler = require('./middleware/errorHandler');
+
 // Root route
 app.get('/', (req, res) => {
   res.json({
@@ -159,80 +161,8 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check route
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    environment: process.env.NODE_ENV
-  });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
-    path: req.originalUrl
-  });
-});
-
-// Global error handler
-app.use((error, req, res, next) => {
-  logger.error('Global error handler:', error);
-  
-  // Mongoose validation error
-  if (error.name === 'ValidationError') {
-    const errors = Object.values(error.errors).map(e => e.message);
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors
-    });
-  }
-  
-  // Mongoose duplicate key error
-  if (error.code === 11000) {
-    const field = Object.keys(error.keyValue)[0];
-    return res.status(409).json({
-      success: false,
-      message: `${field} already exists`
-    });
-  }
-  
-  // JWT errors
-  if (error.name === 'JsonWebTokenError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid token'
-    });
-  }
-  
-  if (error.name === 'TokenExpiredError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Token expired'
-    });
-  }
-  
-  // CORS error
-  if (error.message.includes('CORS')) {
-    return res.status(403).json({
-      success: false,
-      message: 'CORS policy violation'
-    });
-  }
-  
-  // Default error
-  res.status(error.status || 500).json({
-    success: false,
-    message: error.message || 'Internal server error',
-    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-  });
-});
+// Use global error handler
+app.use(errorHandler);
 
 // Graceful shutdown
 const gracefulShutdown = (signal) => {

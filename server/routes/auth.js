@@ -1,337 +1,47 @@
 const express = require('express');
-const passport = require('passport');
-const crypto = require('crypto');
-
-const User = require('../models/User');
-const AuditLog = require('../models/AuditLog');
-const { 
-  generateAccessToken, 
-  generateRefreshToken, 
-  verifyRefreshToken,
-  generateSecureToken,
-  encrypt,
-  decrypt
-} = require('../utils/auth');
+const AuthController = require('../controllers/AuthController');
 const { authenticateToken, logAction } = require('../middleware/auth');
 const {
   validateUserRegistration,
   validateUserLogin,
-  validatePasswordChange,
-  validatePasswordCreation,
-  validateProfileUpdate,
-  validateAIConfig,
-  validateEmail,
-  validatePasswordReset
 } = require('../middleware/validation');
-const logger = require('../utils/logger');
 
 const router = express.Router();
 
 /**
  * @route POST /api/auth/register
- * @desc Register a new user
- * @access Public
  */
-router.post('/register', validateUserRegistration, async (req, res) => {
-  try {
-    const { email, password, name, organization, role } = req.body;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'User already exists with this email'
-      });
-    }
-
-    // Create new user
-    const user = new User({
-      email,
-      password,
-      name,
-      organization,
-      role: role || 'auditor' // Default role
-    });
-
-    await user.save();
-
-    // Generate tokens
-    const accessToken = generateAccessToken({ userId: user._id });
-    const refreshToken = generateRefreshToken({ userId: user._id });
-
-    // Store refresh token
-    user.refreshTokens.push({ token: refreshToken });
-    await user.save();
-
-    // Log registration
-    await AuditLog.logAction(user._id, 'user_created', {
-      method: 'local',
-      email: user.email,
-      role: user.role
-    }, req);
-
-    // Remove sensitive data
-    const userResponse = user.toJSON();
-
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      data: {
-        user: userResponse,
-        tokens: {
-          accessToken,
-          refreshToken
-        }
-      }
-    });
-
-  } catch (error) {
-    logger.error('Registration error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Registration failed',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
+router.post('/register', validateUserRegistration, AuthController.register);
 
 /**
  * @route POST /api/auth/login
- * @desc Login user
- * @access Public
  */
-router.post('/login', validateUserLogin, (req, res, next) => {
-  passport.authenticate('local', async (err, user, info) => {
-    try {
-      if (err) {
-        logger.error('Login authentication error:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Authentication error'
-        });
-      }
-
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: info?.message || 'Invalid credentials'
-        });
-      }
-
-      // Generate tokens
-      const accessToken = generateAccessToken({ userId: user._id });
-      const refreshToken = generateRefreshToken({ userId: user._id });
-
-      // Store refresh token
-      user.refreshTokens.push({ token: refreshToken });
-      await user.save();
-
-      // Update last login
-      await user.updateLastLogin();
-
-      // Remove sensitive data
-      const userResponse = user.toJSON();
-
-      res.json({
-        success: true,
-        message: 'Login successful',
-        data: {
-          user: userResponse,
-          tokens: {
-            accessToken,
-            refreshToken
-          }
-        }
-      });
-
-    } catch (error) {
-      logger.error('Login error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Login failed'
-      });
-    }
-  })(req, res, next);
-});
+router.post('/login', validateUserLogin, AuthController.login);
 
 /**
  * @route GET /api/auth/google
- * @desc Start Google OAuth flow
- * @access Public
  */
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email']
-}));
+router.get('/google', AuthController.googleLogin);
 
 /**
  * @route GET /api/auth/google/callback
- * @desc Handle Google OAuth callback
- * @access Public
  */
-router.get('/google/callback',
-  passport.authenticate('google', { session: false }),
-  async (req, res) => {
-    try {
-      const user = req.user;
-
-      // Generate tokens
-      const accessToken = generateAccessToken({ userId: user._id });
-      const refreshToken = generateRefreshToken({ userId: user._id });
-
-      // Store refresh token
-      user.refreshTokens.push({ token: refreshToken });
-      await user.save();
-
-      // Redirect to frontend with tokens
-      const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
-      res.redirect(`${frontendURL}/auth/callback?token=${accessToken}&refresh=${refreshToken}`);
-
-    } catch (error) {
-      logger.error('Google callback error:', error);
-      const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
-      res.redirect(`${frontendURL}/login?error=oauth_failed`);
-    }
-  }
-);
+router.get('/google/callback', AuthController.googleCallback);
 
 /**
  * @route POST /api/auth/refresh
- * @desc Refresh access token
- * @access Public
  */
-router.post('/refresh', async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      return res.status(401).json({
-        success: false,
-        message: 'Refresh token required'
-      });
-    }
-
-    // Verify refresh token
-    const decoded = verifyRefreshToken(refreshToken);
-    
-    // Find user and check if refresh token exists
-    const user = await User.findById(decoded.userId);
-    if (!user || !user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid refresh token'
-      });
-    }
-
-    const tokenExists = user.refreshTokens.some(t => t.token === refreshToken);
-    if (!tokenExists) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid refresh token'
-      });
-    }
-
-    // Generate new tokens
-    const newAccessToken = generateAccessToken({ userId: user._id });
-    const newRefreshToken = generateRefreshToken({ userId: user._id });
-
-    // Replace old refresh token with new one
-    user.refreshTokens = user.refreshTokens.filter(t => t.token !== refreshToken);
-    user.refreshTokens.push({ token: newRefreshToken });
-    await user.save();
-
-    res.json({
-      success: true,
-      data: {
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken
-      }
-    });
-
-  } catch (error) {
-    logger.error('Token refresh error:', error);
-    res.status(401).json({
-      success: false,
-      message: 'Invalid refresh token'
-    });
-  }
-});
+router.post('/refresh', AuthController.refreshToken);
 
 /**
  * @route POST /api/auth/logout
- * @desc Logout user
- * @access Private
  */
-router.post('/logout', authenticateToken, logAction('logout'), async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-    const user = req.user;
-
-    // Remove specific refresh token or all tokens
-    if (refreshToken) {
-      user.refreshTokens = user.refreshTokens.filter(t => t.token !== refreshToken);
-    } else {
-      user.refreshTokens = []; // Logout from all devices
-    }
-
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
-
-  } catch (error) {
-    logger.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Logout failed'
-    });
-  }
-});
+router.post('/logout', authenticateToken, AuthController.logout);
 
 /**
  * @route GET /api/auth/me
- * @desc Get current user
- * @access Private
  */
-router.get('/me', authenticateToken, async (req, res) => {
-  try {
-    // Get user with AI config fields (including encrypted API keys for status check)
-    const userWithAI = await User.findById(req.user._id).select('+aiConfig.models.openai.apiKey +aiConfig.models.gemini.apiKey +aiConfig.models.anthropic.apiKey +aiConfig.models.azure.apiKey +aiConfig.models.azure.endpoint');
-    const user = userWithAI.toJSON();
-    
-    // Process AI config to include security indicators without exposing sensitive data
-    if (user.aiConfig && user.aiConfig.models) {
-      const processedModels = {};
-      
-      for (const [provider, config] of Object.entries(user.aiConfig.models)) {
-        processedModels[provider] = {
-          model: config.model || null,
-          hasApiKey: !!config.apiKey,
-          ...(provider === 'azure' && {
-            hasEndpoint: !!config.endpoint,
-            hasDeploymentName: !!config.deploymentName
-          })
-        };
-      }
-      
-      user.aiConfig.models = processedModels;
-    }
-    
-    res.json({
-      success: true,
-      data: { user }
-    });
-
-  } catch (error) {
-    logger.error('Get user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get user information'
-    });
-  }
-});
+router.get('/me', authenticateToken, AuthController.getMe);
 
 /**
  * @route PUT /api/auth/profile

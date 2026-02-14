@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  NODE_ENV: "production"
+  PORT: "5000"
+  FRONTEND_URL: "http://expense-audit.local"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: expense-audit-api:latest
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        envFrom:
+        - configMapRef:
+            name: backend-config
+        - secretRef:
+            name: app-secrets
+        env:
+        - name: MONGODB_URI
+          value: "mongodb://mongodb:27017/expenseaudit-ai"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5000
+    targetPort: 5000
+  selector:
+    app: backend

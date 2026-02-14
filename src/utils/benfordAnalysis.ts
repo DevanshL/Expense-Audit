@@ -68,25 +68,25 @@ export interface FlaggedTransaction {
  * Extract the first non-zero digit from a number
  */
 export function extractFirstDigit(amount: number): number | null {
-  if (amount <= 0 || !isFinite(amount)) {
+  // Use absolute value to handle negative numbers (debit/credit consistency)
+  const absAmount = Math.abs(amount);
+  
+  if (absAmount === 0 || !isFinite(absAmount)) {
     return null;
   }
   
-  // Convert to string to handle very small or very large numbers
-  const absAmount = Math.abs(amount);
-  const amountStr = absAmount.toString();
+  // Mathematical approach to extract the first digit:
+  // 1. Get the exponent (log10)
+  // 2. Normalize to [1, 10) range
+  // 3. Floor the result
+  const exponent = Math.floor(Math.log10(absAmount));
+  const firstDigit = Math.floor(absAmount / Math.pow(10, exponent));
   
-  // Remove decimal point and find first non-zero digit
-  const digitsOnly = amountStr.replace(/[^0-9]/g, '');
+  // Extra safety check for floating point precision issues (e.g., 0.9999999999999999)
+  if (firstDigit < 1) return 1;
+  if (firstDigit > 9) return 9;
   
-  for (const char of digitsOnly) {
-    const digit = parseInt(char, 10);
-    if (digit > 0) {
-      return digit;
-    }
-  }
-  
-  return null;
+  return firstDigit;
 }
 
 /**

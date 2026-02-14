@@ -79,7 +79,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
