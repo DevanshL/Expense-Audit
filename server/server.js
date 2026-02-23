@@ -19,6 +19,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const healthRoutes = require('./routes/health');
 const aiRoutes = require('./routes/ai');
+const chatRoutes = require('./routes/chat');
 
 // Create Express app
 const app = express();
@@ -147,6 +148,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/chat', chatRoutes);
+
 
 const errorHandler = require('./middleware/errorHandler');
 

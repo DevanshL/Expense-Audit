@@ -25,23 +25,23 @@ export interface User {
     language: string;
   };
   aiConfig?: {
-    preferredProvider: 'openai' | 'gemini' | 'anthropic' | 'azure';
+    preferredProvider: 'gemini' | 'groq' | 'openai' | 'anthropic';
     models: {
-      openai: { model: string; hasApiKey: boolean };
       gemini: { model: string; hasApiKey: boolean };
+      groq: { model: string; hasApiKey: boolean };
+      openai: { model: string; hasApiKey: boolean };
       anthropic: { model: string; hasApiKey: boolean };
-      azure: { model: string; hasApiKey: boolean; hasEndpoint: boolean };
     };
   };
 }
 
 export interface AIConfig {
-  preferredProvider: 'openai' | 'gemini' | 'anthropic' | 'azure';
+  preferredProvider: 'gemini' | 'groq' | 'openai' | 'anthropic';
   models: {
-    openai: { model: string; apiKey?: string };
     gemini: { model: string; apiKey?: string };
+    groq: { model: string; apiKey?: string };
+    openai: { model: string; apiKey?: string };
     anthropic: { model: string; apiKey?: string };
-    azure: { model: string; apiKey?: string; endpoint?: string; deploymentName?: string };
   };
 }
 
@@ -58,6 +58,7 @@ interface AuthContextType {
   updateAIConfig: (config: Partial<AIConfig>) => Promise<boolean>;
   updatePreferences: (preferences: Partial<{theme: string; density: string; language: string}>) => Promise<boolean>;
   getAIConfig: () => Promise<AIConfig | null>;
+  initializeUser: () => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
   hasPermission: (permission: string) => boolean;
@@ -165,35 +166,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return response;
   }, [refreshTokenFn]);
 
-  // Check authentication on app load
-  useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem('expense-audit-token');
-      
-      if (token) {
-        try {
-          const response = await apiRequest('/auth/me');
-          
-          if (response.ok) {
-            const data = await response.json();
-            setUser(data.data.user);
-          } else {
-            // Invalid token, clear storage
-            localStorage.removeItem('expense-audit-token');
-            localStorage.removeItem('expense-audit-refresh-token');
-          }
-        } catch (err) {
-          console.error('Auth initialization error:', err);
+  const initAuth = useCallback(async () => {
+    setIsLoading(true);
+    const token = localStorage.getItem('expense-audit-token');
+    
+    if (token) {
+      try {
+        const response = await apiRequest('/auth/me');
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.data.user);
+        } else {
           localStorage.removeItem('expense-audit-token');
           localStorage.removeItem('expense-audit-refresh-token');
+          setUser(null);
         }
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        localStorage.removeItem('expense-audit-token');
+        localStorage.removeItem('expense-audit-refresh-token');
+        setUser(null);
       }
-      
-      setIsLoading(false);
-    };
-
-    initAuth();
+    }
+    
+    setIsLoading(false);
   }, [apiRequest]);
+
+  // Check authentication on app load
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
@@ -360,11 +363,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const requestBody = {
         preferredProvider: config.preferredProvider,
         model: config.models?.[config.preferredProvider!]?.model,
-        apiKey: config.models?.[config.preferredProvider!]?.apiKey,
-        ...(config.preferredProvider === 'azure' && {
-          azureEndpoint: config.models?.azure?.endpoint,
-          azureDeployment: config.models?.azure?.deploymentName
-        })
+        apiKey: config.models?.[config.preferredProvider!]?.apiKey
       };
 
       const response = await apiRequest('/auth/ai-config', {
@@ -452,6 +451,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       updateAIConfig,
       updatePreferences,
       getAIConfig,
+      initializeUser: initAuth,
       isLoading,
       isAuthenticated: !!user,
       hasPermission,

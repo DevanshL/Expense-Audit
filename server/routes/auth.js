@@ -4,7 +4,11 @@ const { authenticateToken, logAction } = require('../middleware/auth');
 const {
   validateUserRegistration,
   validateUserLogin,
+  validateProfileUpdate,
+  validateAIConfig,
+  validatePasswordChange,
 } = require('../middleware/validation');
+
 
 const router = express.Router();
 

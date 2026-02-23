@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { UploadPage } from './pages/UploadPage';
 import { AnalysisPage } from './pages/AnalysisPage';
@@ -11,6 +11,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { LandingPage } from './pages/LandingPage';
 
 export const router = createBrowserRouter([
   {
@@ -27,16 +28,15 @@ export const router = createBrowserRouter([
   },
   {
     path: '/',
+    element: <LandingPage />,
+  },
+  {
     element: (
       <ProtectedRoute>
         <Layout />
       </ProtectedRoute>
     ),
     children: [
-      {
-        index: true,
-        element: <Navigate to="/upload" replace />,
-      },
       {
         path: 'upload',
         element: <UploadPage />,

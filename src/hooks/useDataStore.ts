@@ -4,6 +4,7 @@ import type { ProcessedDataset } from '../types';
 
 interface DataStore {
   dataset: ProcessedDataset | null;
+  auditId: string | null;
   setDataset: (dataset: ProcessedDataset | null) => void;
   clearDataset: () => void;
 }
@@ -12,8 +13,12 @@ export const useDataStore = create<DataStore>()(
   persist(
     (set) => ({
       dataset: null,
-      setDataset: (dataset: ProcessedDataset | null) => set({ dataset }),
-      clearDataset: () => set({ dataset: null }),
+      auditId: null,
+      setDataset: (dataset: ProcessedDataset | null) => set({ 
+        dataset, 
+        auditId: dataset ? crypto.randomUUID() : null 
+      }),
+      clearDataset: () => set({ dataset: null, auditId: null }),
     }),
     {
       name: 'expense-audit-data',
@@ -23,7 +28,8 @@ export const useDataStore = create<DataStore>()(
           ...state.dataset,
           // Keep only essential data for persistence
           rawData: [], // Don't persist raw data
-        } : null 
+        } : null,
+        auditId: state.auditId 
       }),
     }
   )

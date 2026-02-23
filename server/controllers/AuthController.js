@@ -66,7 +66,13 @@ class AuthController {
 
   async logout(req, res) {
     try {
+      const userId = req.user._id;
       await AuthService.logout(req.user, req.body.refreshToken);
+      // Clear all AI chat sessions on logout — history won't survive a logout
+      try {
+        const ChatService = require('../services/ChatService');
+        await ChatService.clearAllSessions(userId);
+      } catch (_) { /* non-fatal */ }
       res.json({ success: true, message: 'Logged out successfully' });
     } catch (error) {
       logger.error('Logout error:', error);
@@ -74,8 +80,12 @@ class AuthController {
     }
   }
 
+
   googleLogin(req, res, next) {
-    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      prompt: 'select_account'
+    })(req, res, next);
   }
 
   googleCallback(req, res, next) {
@@ -87,7 +97,8 @@ class AuthController {
           return res.redirect(`${frontendURL}/login?error=oauth_failed`);
         }
 
-        const { accessToken, refreshToken } = await AuthService.login(user, req);
+        const loginResult = await AuthService.login(user, req);
+        const { accessToken, refreshToken } = loginResult.tokens;
         const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
         res.redirect(`${frontendURL}/auth/callback?token=${accessToken}&refresh=${refreshToken}`);
       } catch (error) {

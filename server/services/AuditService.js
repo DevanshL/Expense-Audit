@@ -1,5 +1,6 @@
 const { performBenfordAnalysis } = require('../utils/benfordAnalysis');
 const { generateGeminiSummary } = require('../utils/geminiIntegration');
+const { generateGroqSummary } = require('../utils/groqIntegration');
 const { decrypt } = require('../utils/auth');
 const User = require('../models/User');
 const logger = require('../utils/logger');
@@ -33,24 +34,36 @@ class AuditService {
       throw new Error('AI configuration not found');
     }
 
-    const provider = user.aiConfig.preferredProvider;
-    const providerConfig = user.aiConfig.models[provider];
+    const provider = user?.aiConfig?.preferredProvider || 'gemini';
+    const providerConfig = user?.aiConfig?.models?.[provider];
 
-    if (!providerConfig?.apiKey) {
-      throw new Error(`API key not configured for ${provider}`);
+    // Resolve API key: user config first, then server env key
+    let decryptedApiKey = providerConfig?.apiKey ? decrypt(providerConfig.apiKey) : null;
+    if (!decryptedApiKey) {
+      if (provider === 'gemini') decryptedApiKey = process.env.GEMINI_API_KEY || null;
+      else if (provider === 'groq') decryptedApiKey = process.env.GROQ_API_KEY || null;
     }
 
-    const decryptedApiKey = decrypt(providerConfig.apiKey);
+    if (!decryptedApiKey) {
+      throw new Error(
+        `No API key configured for ${provider}. Add GEMINI_API_KEY or GROQ_API_KEY to .env.`
+      );
+    }
 
     let summary;
     switch (provider) {
       case 'gemini':
         summary = await generateGeminiSummary(result, dataset, {
           apiKey: decryptedApiKey,
-          model: providerConfig.model || 'gemini-2.0-flash'
+          model: providerConfig?.model || process.env.DEFAULT_GEMINI_MODEL || 'gemini-2.0-flash',
         });
         break;
-      // Other providers can be added here
+      case 'groq':
+        summary = await generateGroqSummary(result, dataset, {
+          apiKey: decryptedApiKey,
+          model: providerConfig?.model || process.env.DEFAULT_GROQ_MODEL || 'llama-3.3-70b-versatile',
+        });
+        break;
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }

@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Settings } from 'lucide-react';
+import { Settings, MessageSquare, X } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { SettingsPanel } from './SettingsPanel';
 import { StepNavigation } from './StepNavigation';
 import { ToastContainer } from './Toast';
 import { UserDropdown } from './UserDropdown';
-import { useTheme } from '../hooks/useTheme';
+import { AuditChat } from './AuditChat';
+import { ThemeToggle } from './ThemeToggle';
 import { useToast } from '../hooks/useToast';
+import { useDataStore } from '../hooks/useDataStore';
 
 interface LayoutProps {
   children?: ReactNode;
@@ -17,7 +19,9 @@ interface LayoutProps {
 
 export function Layout({ children, className }: LayoutProps) {
   const [showSettings, setShowSettings] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const { toasts, dismissToast } = useToast();
+  const { dataset, auditId } = useDataStore();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -104,33 +108,41 @@ export function Layout({ children, className }: LayoutProps) {
       
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* Floating Global Audit Chat */}
+      {dataset && auditId && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+          {isChatOpen && (
+            <div className="mb-4 w-96 h-[550px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+              <AuditChat 
+                auditId={auditId} 
+                auditSnapshot={dataset.validation?.isValid ? {
+                  totalAnalyzed: dataset.preview.totalRows,
+                  digitFrequencies: [],
+                  chiSquare: 0,
+                  mad: 0,
+                  overallAssessment: 'acceptable',
+                  riskLevel: 'low',
+                  suspiciousVendors: [],
+                  flaggedTransactions: [],
+                  warnings: []
+                } : null} 
+              />
+            </div>
+          )}
+          
+          <button
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className={cn(
+              "flex items-center justify-center w-14 h-14 rounded-full shadow-xl transition-all hover:scale-105 hover:shadow-2xl",
+              isChatOpen ? "bg-red-600 hover:bg-red-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
+            )}
+            title={isChatOpen ? "Close AI Chat" : "Ask AI about your audit"}
+          >
+            {isChatOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
-// Theme Toggle Component
-function ThemeToggle() {
-  const { setTheme, isDark } = useTheme();
-
-  const toggleTheme = () => {
-    setTheme(isDark ? 'light' : 'dark');
-  };
-
-  return (
-    <button
-      onClick={toggleTheme}
-      className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-      title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-    >
-      {isDark ? (
-        <svg className="w-5 h-5 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ) : (
-        <svg className="w-5 h-5 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-        </svg>
-      )}
-    </button>
-  );
-}
-

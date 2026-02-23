@@ -33,12 +33,12 @@ import { testAPIKey } from '../utils/aiModelManager';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 export interface AIConfig {
-  preferredProvider: 'openai' | 'gemini' | 'anthropic' | 'azure';
+  preferredProvider: 'gemini' | 'groq' | 'openai' | 'anthropic';
   models: {
-    openai: { model: string; apiKey?: string };
     gemini: { model: string; apiKey?: string };
+    groq: { model: string; apiKey?: string };
+    openai: { model: string; apiKey?: string };
     anthropic: { model: string; apiKey?: string };
-    azure: { model: string; apiKey?: string; endpoint?: string; deploymentName?: string };
   };
 }
 
@@ -61,11 +61,9 @@ const passwordSchema = z.object({
 });
 
 const aiConfigSchema = z.object({
-  preferredProvider: z.enum(['openai', 'gemini', 'anthropic', 'azure']),
+  preferredProvider: z.enum(['gemini', 'groq', 'openai', 'anthropic']),
   apiKey: z.string().min(1, 'API key is required'),
   model: z.string().min(1, 'Model selection is required'),
-  azureEndpoint: z.string().optional(),
-  azureDeployment: z.string().optional(),
 });
 
 const preferencesSchema = z.object({
@@ -90,58 +88,52 @@ interface AIProvider {
 
 const AI_PROVIDERS: AIProvider[] = [
   {
+    id: 'gemini',
+    name: 'Google Gemini',
+    description: 'Google AI — fast and capable, best for analysis',
+    models: [
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Default — fast, cheap, excellent quality' },
+      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Longer context, higher accuracy' },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Very fast processing' },
+    ],
+    keyFormat: 'AIza...',
+    icon: '🔷'
+  },
+  {
+    id: 'groq',
+    name: 'Groq (Llama)',
+    description: 'Groq inference — extremely fast, free tier available',
+    models: [
+      { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', description: 'Best free tier model — 128k context' },
+      { id: 'llama3-8b-8192', name: 'Llama 3 8B', description: 'Ultra-fast, lightweight' },
+      { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', description: 'Good for structured analysis' },
+    ],
+    keyFormat: 'gsk_...',
+    icon: '⚡'
+  },
+  {
     id: 'openai',
     name: 'OpenAI',
-    description: 'Latest GPT models with advanced reasoning',
+    description: 'GPT models — industry standard',
     models: [
-      { id: 'gpt-4o', name: 'GPT-4o', description: 'Latest and most capable model (Nov 2024)' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and cost-effective latest model' },
-      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Previous generation, reliable' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Legacy model, basic tasks' },
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and cost-effective' },
+      { id: 'gpt-4o', name: 'GPT-4o', description: 'Latest and most capable' },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Legacy, fast and cheap' },
     ],
     keyFormat: 'sk-...',
     icon: '🤖'
   },
   {
     id: 'anthropic',
-    name: 'Anthropic',
-    description: 'Latest Claude models with advanced reasoning',
+    name: 'Anthropic Claude',
+    description: 'Claude models — excellent reasoning',
     models: [
-      { id: 'claude-4-opus', name: 'Claude 4 Opus', description: 'Latest flagship model with enhanced capabilities (2025)' },
-      { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', description: 'Advanced balanced model (2025)' },
-      { id: 'claude-3.7-sonnet', name: 'Claude 3.7 Sonnet', description: 'Enhanced reasoning model (Dec 2024)' },
-      { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', description: 'Previous generation with enhanced reasoning' },
-      { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', description: 'Fast and efficient latest model' },
-      { id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Previous flagship for complex tasks' },
+      { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', description: 'Best balance of speed and quality' },
+      { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', description: 'Fast and efficient' },
+      { id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Highest capability' },
     ],
     keyFormat: 'sk-ant-...',
     icon: '🎭'
-  },
-  {
-    id: 'gemini',
-    name: 'Google AI',
-    description: 'Latest Gemini models with advanced capabilities',
-    models: [
-      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: 'Latest production model with enhanced reasoning' },
-      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Fast latest generation model' },
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Experimental cutting-edge model' },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Production-ready with long context' },
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Fast processing, good for analysis' },
-    ],
-    keyFormat: 'AIza...',
-    icon: '🔷'
-  },
-  {
-    id: 'azure',
-    name: 'Azure OpenAI',
-    description: 'Enterprise OpenAI models through Microsoft Azure',
-    models: [
-      { id: 'gpt-4o', name: 'GPT-4o (Azure)', description: 'Latest model via Azure deployment' },
-      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo (Azure)', description: 'Azure-hosted GPT-4 Turbo' },
-      { id: 'gpt-35-turbo', name: 'GPT-3.5 Turbo (Azure)', description: 'Azure-hosted GPT-3.5' },
-    ],
-    keyFormat: 'Azure API Key',
-    icon: '☁️'
   }
 ];
 
@@ -200,19 +192,17 @@ export function SettingsPage() {
   const aiConfigForm = useForm<AIConfigFormData>({
     resolver: zodResolver(aiConfigSchema),
     defaultValues: {
-      preferredProvider: user?.aiConfig?.preferredProvider || 'openai',
-      apiKey: '', // Never pre-populate API keys for security
-      model: user?.aiConfig?.models?.[user?.aiConfig?.preferredProvider || 'openai']?.model || 'gpt-4o-mini',
+      preferredProvider: user?.aiConfig?.preferredProvider || 'gemini',
+      apiKey: '',
+      model: user?.aiConfig?.models?.[user?.aiConfig?.preferredProvider || 'gemini']?.model || 'gemini-2.0-flash',
     },
   });
 
-  // Update AI config form when user data changes
   useEffect(() => {
     if (user?.aiConfig) {
-      const currentProvider = user.aiConfig.preferredProvider || 'openai';
+      const currentProvider = user.aiConfig.preferredProvider || 'gemini';
       aiConfigForm.setValue('preferredProvider', currentProvider);
-      aiConfigForm.setValue('model', user.aiConfig.models?.[currentProvider]?.model || 'gpt-4o-mini');
-      // Don't pre-populate API key for security reasons
+      aiConfigForm.setValue('model', user.aiConfig.models?.[currentProvider]?.model || 'gemini-2.0-flash');
       aiConfigForm.setValue('apiKey', '');
     }
   }, [user?.aiConfig, aiConfigForm]);
@@ -228,23 +218,16 @@ export function SettingsPage() {
 
   const selectedProvider = AI_PROVIDERS.find(p => p.id === aiConfigForm.watch('preferredProvider'));
 
-  // Update form when user's AI config changes
   useEffect(() => {
     if (user?.aiConfig) {
       aiConfigForm.setValue('preferredProvider', user.aiConfig.preferredProvider);
       const currentModel = user.aiConfig.models?.[user.aiConfig.preferredProvider]?.model;
-      if (currentModel) {
-        aiConfigForm.setValue('model', currentModel);
-      }
+      if (currentModel) aiConfigForm.setValue('model', currentModel);
     }
   }, [user?.aiConfig, aiConfigForm]);
 
-  // Fetch usage statistics when component mounts or user changes
   useEffect(() => {
-    if (user) {
-      console.log('SettingsPage: Calling fetchUsageStats for user:', user.email);
-      fetchUsageStats();
-    }
+    if (user) fetchUsageStats();
   }, [user, fetchUsageStats]);
 
   useEffect(() => {
@@ -349,52 +332,24 @@ export function SettingsPage() {
   const onAIConfigSubmit = async (data: AIConfigFormData) => {
     setIsLoading(true);
     try {
-      // First, validate the API key before saving
-      if (data.apiKey && data.apiKey.trim()) {
-        console.log('Testing API key before saving...');
-        
-        // For Azure, prepare the config object
-        const azureConfig = data.preferredProvider === 'azure' ? {
-          endpoint: data.azureEndpoint || '',
-          deploymentName: data.azureDeployment || ''
-        } : undefined;
-        
-        const testResult = await testAPIKey(data.preferredProvider, data.apiKey, azureConfig);
-        
-        if (!testResult.success) {
-          showError(`API Key validation failed: ${testResult.message}`);
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('API key validation successful');
-      }
-
-      // Transform the form data to match the new backend API structure
       const configUpdate: Partial<AIConfig> = {
         preferredProvider: data.preferredProvider,
         models: {
           [data.preferredProvider]: {
             model: data.model,
             apiKey: data.apiKey,
-            ...(data.preferredProvider === 'azure' && {
-              endpoint: data.azureEndpoint,
-              deploymentName: data.azureDeployment
-            })
           }
         } as AIConfig['models']
       };
-      
       const success = await updateAIConfig(configUpdate);
       if (success) {
         showSuccess('AI configuration saved successfully');
-        aiConfigForm.setValue('apiKey', ''); // Clear API key field after save
-        setApiTestResult(null); // Clear test result
+        aiConfigForm.setValue('apiKey', '');
+        setApiTestResult(null);
       } else {
         showError('Failed to save AI configuration');
       }
     } catch (error) {
-      console.error('Error in AI config submit:', error);
       showError('An error occurred while saving AI configuration');
     } finally {
       setIsLoading(false);
@@ -595,32 +550,32 @@ export function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-700 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <Settings className="w-8 h-8 text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
         </div>
 
         {/* Success/Error Messages */}
         {successMessage && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
+          <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
             <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
             <p className="text-green-700">{successMessage}</p>
           </div>
         )}
 
         {errorMessage && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-            <p className="text-red-700">{errorMessage}</p>
+            <p className="text-red-700 dark:text-red-400">{errorMessage}</p>
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
           {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="flex space-x-8 px-6">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -632,7 +587,7 @@ export function SettingsPage() {
                       "flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors",
                       activeTab === tab.id
                         ? "border-blue-500 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:border-gray-600"
                     )}
                   >
                     <Icon className="w-5 h-5" />
@@ -648,10 +603,10 @@ export function SettingsPage() {
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Profile Information</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Profile Information</h3>
                   <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Full Name
                       </label>
                       <div className="relative">
@@ -661,17 +616,17 @@ export function SettingsPage() {
                         <input
                           {...profileForm.register('name')}
                           type="text"
-                          className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Your full name"
                         />
                       </div>
                       {profileForm.formState.errors.name && (
-                        <p className="mt-1 text-sm text-red-600">{profileForm.formState.errors.name.message}</p>
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-500">{profileForm.formState.errors.name.message}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Email Address
                       </label>
                       <div className="relative">
@@ -681,17 +636,17 @@ export function SettingsPage() {
                         <input
                           {...profileForm.register('email')}
                           type="email"
-                          className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="your.email@example.com"
                         />
                       </div>
                       {profileForm.formState.errors.email && (
-                        <p className="mt-1 text-sm text-red-600">{profileForm.formState.errors.email.message}</p>
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-500">{profileForm.formState.errors.email.message}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Organization <span className="text-gray-400">(Optional)</span>
                       </label>
                       <div className="relative">
@@ -701,7 +656,7 @@ export function SettingsPage() {
                         <input
                           {...profileForm.register('organization')}
                           type="text"
-                          className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Your company or organization"
                         />
                       </div>
@@ -724,10 +679,10 @@ export function SettingsPage() {
               <div className="space-y-6">
                 <div>
                   <div className="mb-6">
-                    <h3 className="text-lg font-medium text-gray-900">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                       {passwordStatus?.hasPassword ? 'Change Password' : 'Set Password'}
                     </h3>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       {passwordStatus?.hasPassword 
                         ? 'Update your existing password for enhanced security' 
                         : passwordStatus?.isOAuthUser 
@@ -736,7 +691,7 @@ export function SettingsPage() {
                       }
                     </p>
                     {passwordStatus?.isOAuthUser && (
-                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-lg">
                         <div className="flex items-start">
                           <div className="flex-shrink-0">
                             <AlertCircle className="h-5 w-5 text-blue-400" />
@@ -759,7 +714,7 @@ export function SettingsPage() {
                     {/* Current Password - only show if user has existing password */}
                     {passwordStatus?.hasPassword && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Current Password
                         </label>
                         <div className="relative">
@@ -769,7 +724,7 @@ export function SettingsPage() {
                           <input
                             {...passwordForm.register('currentPassword')}
                             type={showCurrentPassword ? 'text' : 'password'}
-                            className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter your current password"
                             required={passwordStatus?.hasPassword}
                           />
@@ -779,20 +734,20 @@ export function SettingsPage() {
                             className="absolute inset-y-0 right-0 pr-3 flex items-center"
                           >
                             {showCurrentPassword ? (
-                              <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                              <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                             ) : (
-                              <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                              <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                             )}
                           </button>
                         </div>
                         {passwordForm.formState.errors.currentPassword && (
-                          <p className="mt-1 text-sm text-red-600">{passwordForm.formState.errors.currentPassword.message}</p>
+                          <p className="mt-1 text-sm text-red-600 dark:text-red-500">{passwordForm.formState.errors.currentPassword.message}</p>
                         )}
                       </div>
                     )}
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {passwordStatus?.hasPassword ? 'New Password' : 'Password'}
                       </label>
                       <div className="relative">
@@ -802,7 +757,7 @@ export function SettingsPage() {
                         <input
                           {...passwordForm.register('newPassword')}
                           type={showNewPassword ? 'text' : 'password'}
-                          className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder={passwordStatus?.hasPassword ? "Create a new password" : "Create a secure password"}
                         />
                         <button
@@ -811,19 +766,19 @@ export function SettingsPage() {
                           className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         >
                           {showNewPassword ? (
-                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                           ) : (
-                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                           )}
                         </button>
                       </div>
                       {passwordForm.formState.errors.newPassword && (
-                        <p className="mt-1 text-sm text-red-600">{passwordForm.formState.errors.newPassword.message}</p>
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-500">{passwordForm.formState.errors.newPassword.message}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {passwordStatus?.hasPassword ? 'Confirm New Password' : 'Confirm Password'}
                       </label>
                       <div className="relative">
@@ -833,7 +788,7 @@ export function SettingsPage() {
                         <input
                           {...passwordForm.register('confirmPassword')}
                           type={showConfirmPassword ? 'text' : 'password'}
-                          className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder={passwordStatus?.hasPassword ? "Confirm your new password" : "Confirm your password"}
                         />
                         <button
@@ -842,14 +797,14 @@ export function SettingsPage() {
                           className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         >
                           {showConfirmPassword ? (
-                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                           ) : (
-                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                           )}
                         </button>
                       </div>
                       {passwordForm.formState.errors.confirmPassword && (
-                        <p className="mt-1 text-sm text-red-600">{passwordForm.formState.errors.confirmPassword.message}</p>
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-500">{passwordForm.formState.errors.confirmPassword.message}</p>
                       )}
                     </div>
 
@@ -870,7 +825,7 @@ export function SettingsPage() {
                 </div>
 
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Account Actions</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Account Actions</h3>
                   <div className="space-y-4">
                     <button
                       onClick={logout}
@@ -900,15 +855,15 @@ export function SettingsPage() {
             {activeTab === 'ai-config' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">AI Provider Configuration</h3>
-                  <p className="text-gray-600 mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">AI Provider Configuration</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
                     Configure your preferred AI provider and API credentials for advanced financial analysis.
                   </p>
                   
                   <form onSubmit={aiConfigForm.handleSubmit(onAIConfigSubmit)} className="space-y-6">
                     {/* Provider Selection */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                         AI Provider
                       </label>
                       <div className="grid gap-4">
@@ -918,8 +873,8 @@ export function SettingsPage() {
                             className={cn(
                               "relative flex cursor-pointer rounded-lg border p-4 focus:outline-none",
                               aiConfigForm.watch('preferredProvider') === provider.id
-                                ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50"
-                                : "border-gray-300 hover:border-gray-400"
+                                ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                                : "border-gray-300 dark:border-gray-600 hover:border-gray-400"
                             )}
                           >
                             <input
@@ -932,31 +887,31 @@ export function SettingsPage() {
                               <span className="text-2xl mr-3">{provider.icon}</span>
                               <div className="flex-1">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-lg font-medium text-gray-900">{provider.name}</h4>
+                                  <h4 className="text-lg font-medium text-gray-900 dark:text-white">{provider.name}</h4>
                                   {aiConfigForm.watch('preferredProvider') === provider.id && (
                                     <Check className="w-5 h-5 text-blue-600" />
                                   )}
                                 </div>
-                                <p className="text-sm text-gray-500">{provider.description}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{provider.description}</p>
                               </div>
                             </div>
                           </label>
                         ))}
                       </div>
                       {aiConfigForm.formState.errors.preferredProvider && (
-                        <p className="mt-1 text-sm text-red-600">{aiConfigForm.formState.errors.preferredProvider.message}</p>
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-500">{aiConfigForm.formState.errors.preferredProvider.message}</p>
                       )}
                     </div>
 
                     {/* Model Selection */}
                     {selectedProvider && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Model
                         </label>
                         <select
                           {...aiConfigForm.register('model')}
-                          className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           {selectedProvider.models.map((model) => (
                             <option key={model.id} value={model.id}>
@@ -965,7 +920,7 @@ export function SettingsPage() {
                           ))}
                         </select>
                         {aiConfigForm.formState.errors.model && (
-                          <p className="mt-1 text-sm text-red-600">{aiConfigForm.formState.errors.model.message}</p>
+                          <p className="mt-1 text-sm text-red-600 dark:text-red-500">{aiConfigForm.formState.errors.model.message}</p>
                         )}
                       </div>
                     )}
@@ -973,7 +928,7 @@ export function SettingsPage() {
                     {/* API Key */}
                     {selectedProvider && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           API Key
                         </label>
                         <div className="relative">
@@ -983,7 +938,7 @@ export function SettingsPage() {
                           <input
                             {...aiConfigForm.register('apiKey')}
                             type={showApiKey ? 'text' : 'password'}
-                            className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder={`Enter your ${selectedProvider.name} API key (${selectedProvider.keyFormat})`}
                           />
                           <button
@@ -992,30 +947,26 @@ export function SettingsPage() {
                             className="absolute inset-y-0 right-0 pr-3 flex items-center"
                           >
                             {showApiKey ? (
-                              <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                              <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                             ) : (
-                              <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                              <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                             )}
                           </button>
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                           Your API key is encrypted and stored securely. It will only be used for analysis requests.
                         </p>
                         
                         {/* API Test Section */}
                         {aiConfigForm.watch('apiKey') && (
-                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-700">Test your API key:</span>
+                              <span className="text-sm text-gray-700 dark:text-gray-300">Test your API key:</span>
                               <button
                                 type="button"
                                 onClick={() => handleTestAPIKey(
                                   selectedProvider.id,
-                                  aiConfigForm.watch('apiKey'),
-                                  selectedProvider.id === 'azure' ? {
-                                    endpoint: aiConfigForm.watch('azureEndpoint') || '',
-                                    deploymentName: aiConfigForm.watch('azureDeployment') || ''
-                                  } : undefined
+                                  aiConfigForm.watch('apiKey')
                                 )}
                                 disabled={isTestingAPI}
                                 className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
@@ -1027,8 +978,8 @@ export function SettingsPage() {
                               <div className={cn(
                                 "mt-2 p-2 rounded text-sm",
                                 apiTestResult.success 
-                                  ? "bg-green-100 text-green-800 border border-green-200"
-                                  : "bg-red-100 text-red-800 border border-red-200"
+                                  ? "bg-green-100 text-green-800 dark:text-green-400 border border-green-200"
+                                  : "bg-red-100 text-red-800 dark:text-red-400 border border-red-200"
                               )}>
                                 <div className="flex items-center space-x-2">
                                   {apiTestResult.success ? (
@@ -1047,40 +998,13 @@ export function SettingsPage() {
                         )}
                         
                         {aiConfigForm.formState.errors.apiKey && (
-                          <p className="mt-1 text-sm text-red-600">{aiConfigForm.formState.errors.apiKey.message}</p>
+                          <p className="mt-1 text-sm text-red-600 dark:text-red-500">{aiConfigForm.formState.errors.apiKey.message}</p>
                         )}
                       </div>
                     )}
 
-                    {/* Azure Configuration Fields */}
-                    {selectedProvider?.id === 'azure' && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Azure Endpoint
-                          </label>
-                          <input
-                            {...aiConfigForm.register('azureEndpoint')}
-                            type="text"
-                            className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="https://your-resource.openai.azure.com"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Deployment Name
-                          </label>
-                          <input
-                            {...aiConfigForm.register('azureDeployment')}
-                            type="text"
-                            className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="your-deployment-name"
-                          />
-                        </div>
-                      </div>
-                    )}
 
-                    <div className="border-t border-gray-200 pt-6">
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                       <button
                         type="submit"
                         disabled={isLoading}
@@ -1096,41 +1020,23 @@ export function SettingsPage() {
                 {/* Current Configuration Status */}
                 {user?.aiConfig?.preferredProvider && (
                   <div className="border-t pt-6">
-                    <h4 className="text-md font-medium text-gray-900 mb-3">Current Configuration</h4>
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">Current Configuration</h4>
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 dark:text-white">
                             {AI_PROVIDERS.find(p => p.id === user.aiConfig?.preferredProvider)?.name || 'Unknown Provider'}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                             Model: {user.aiConfig.models?.[user.aiConfig.preferredProvider]?.model || 'Not configured'}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                             API Key: {user.aiConfig.models?.[user.aiConfig.preferredProvider]?.hasApiKey ? (
-                              <span className="text-green-600 font-medium">Configured ✓</span>
+                              <span className="text-green-600 dark:text-green-500 font-medium">Configured ✓</span>
                             ) : (
                               <span className="text-yellow-600 font-medium">Not configured</span>
                             )}
                           </p>
-                          {user.aiConfig.preferredProvider === 'azure' && (
-                            <>
-                              <p className="text-sm text-gray-600">
-                                Endpoint: {user.aiConfig.models?.azure?.hasEndpoint ? (
-                                  <span className="text-green-600 font-medium">Configured ✓</span>
-                                ) : (
-                                  <span className="text-yellow-600 font-medium">Not configured</span>
-                                )}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Deployment: {user.aiConfig.models?.azure?.model ? (
-                                  <span className="text-green-600 font-medium">{user.aiConfig.models.azure.model} ✓</span>
-                                ) : (
-                                  <span className="text-yellow-600 font-medium">Not configured</span>
-                                )}
-                              </p>
-                            </>
-                          )}
                         </div>
                         <div className="flex items-center space-x-2">
                           {user.aiConfig.models?.[user.aiConfig.preferredProvider]?.hasApiKey ? (
@@ -1148,9 +1054,9 @@ export function SettingsPage() {
 
             {/* Usage Stats Tab */}
             {activeTab === 'usage' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Usage Statistics</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Usage Statistics</h2>
                   <button
                     onClick={fetchUsageStats}
                     disabled={usageLoading}
@@ -1161,12 +1067,12 @@ export function SettingsPage() {
                 </div>
                 
                 {usageError && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-md p-4 mb-6">
                     <div className="flex items-center space-x-2">
-                      <AlertCircle className="w-5 h-5 text-red-600" />
-                      <span className="text-red-800 font-medium">Error loading usage statistics</span>
+                      <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-500" />
+                      <span className="text-red-800 dark:text-red-400 font-medium">Error loading usage statistics</span>
                     </div>
-                    <p className="text-red-700 text-sm mt-1">{usageError}</p>
+                    <p className="text-red-700 dark:text-red-400 text-sm mt-1">{usageError}</p>
                   </div>
                 )}
                 
@@ -1182,25 +1088,25 @@ export function SettingsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                     <div className="flex items-center space-x-3">
-                      <Database className="w-8 h-8 text-green-600" />
+                      <Database className="w-8 h-8 text-green-600 dark:text-green-500" />
                       <div>
-                        <div className="text-2xl font-bold text-green-600">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-500">
                           {usageLoading ? '...' : (usageData?.stats?.filesUploaded || 0)}
                         </div>
-                        <div className="text-sm text-green-800">Files Uploaded</div>
+                        <div className="text-sm text-green-800 dark:text-green-400">Files Uploaded</div>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <FileText className="w-8 h-8 text-blue-600" />
                       <div>
                         <div className="text-2xl font-bold text-blue-600">
                           {usageLoading ? '...' : (usageData?.stats?.reportsGenerated || 0)}
                         </div>
-                        <div className="text-sm text-blue-800">Reports Generated</div>
+                        <div className="text-sm text-blue-800 dark:text-blue-400">Reports Generated</div>
                       </div>
                     </div>
                   </div>
@@ -1218,10 +1124,10 @@ export function SettingsPage() {
                 </div>
 
                 {user?.role === 'viewer' && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 rounded-md p-4">
                     <div className="flex items-center space-x-2">
                       <Eye className="w-5 h-5 text-yellow-600" />
-                      <span className="text-yellow-800 font-medium">Viewer Access</span>
+                      <span className="text-yellow-800 dark:text-yellow-400 font-medium">Viewer Access</span>
                     </div>
                     <p className="text-yellow-700 text-sm mt-1">
                       You can only view shared reports. Contact an admin to upgrade your access.
@@ -1230,10 +1136,10 @@ export function SettingsPage() {
                 )}
 
                 {user?.role === 'auditor' && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-md p-4">
                     <div className="flex items-center space-x-2">
                       <Shield className="w-5 h-5 text-blue-600" />
-                      <span className="text-blue-800 font-medium">Auditor Access</span>
+                      <span className="text-blue-800 dark:text-blue-400 font-medium">Auditor Access</span>
                     </div>
                     <p className="text-blue-700 text-sm mt-1">
                       You can upload and analyze your own data files.
@@ -1247,15 +1153,15 @@ export function SettingsPage() {
             {activeTab === 'preferences' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">UI Preferences</h3>
-                  <p className="text-gray-600 mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">UI Preferences</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
                     Customize your interface to suit your preferences.
                   </p>
                   
                   <form onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)} className="space-y-6">
                     {/* Theme Selection */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                         Theme
                       </label>
                       <div className="grid grid-cols-3 gap-4">
@@ -1265,8 +1171,8 @@ export function SettingsPage() {
                             className={cn(
                               "relative flex cursor-pointer rounded-lg border p-4 focus:outline-none",
                               preferencesForm.watch('theme') === theme
-                                ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50"
-                                : "border-gray-300 hover:border-gray-400"
+                                ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                                : "border-gray-300 dark:border-gray-600 hover:border-gray-400"
                             )}
                           >
                             <input
@@ -1282,7 +1188,7 @@ export function SettingsPage() {
                                   {theme === 'dark' && '🌙'}
                                   {theme === 'system' && '🖥️'}
                                 </div>
-                                <h4 className="text-sm font-medium text-gray-900 capitalize">{theme}</h4>
+                                <h4 className="text-sm font-medium text-gray-900 dark:text-white capitalize">{theme}</h4>
                                 {preferencesForm.watch('theme') === theme && (
                                   <Check className="w-4 h-4 text-blue-600 mx-auto mt-1" />
                                 )}
@@ -1295,7 +1201,7 @@ export function SettingsPage() {
 
                     {/* Interface Density */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                         Interface Density
                       </label>
                       <div className="grid grid-cols-2 gap-4">
@@ -1305,8 +1211,8 @@ export function SettingsPage() {
                             className={cn(
                               "relative flex cursor-pointer rounded-lg border p-4 focus:outline-none",
                               preferencesForm.watch('density') === density
-                                ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50"
-                                : "border-gray-300 hover:border-gray-400"
+                                ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                                : "border-gray-300 dark:border-gray-600 hover:border-gray-400"
                             )}
                           >
                             <input
@@ -1321,8 +1227,8 @@ export function SettingsPage() {
                                   {density === 'compact' && '📱'}
                                   {density === 'comfortable' && '🖥️'}
                                 </div>
-                                <h4 className="text-sm font-medium text-gray-900 capitalize">{density}</h4>
-                                <p className="text-xs text-gray-500">
+                                <h4 className="text-sm font-medium text-gray-900 dark:text-white capitalize">{density}</h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                   {density === 'compact' ? 'More content in less space' : 'Spacious and easy to read'}
                                 </p>
                                 {preferencesForm.watch('density') === density && (
@@ -1337,12 +1243,12 @@ export function SettingsPage() {
 
                     {/* Language Selection */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Language
                       </label>
                       <select 
                         {...preferencesForm.register('language')}
-                        className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         title="Select language preference"
                       >
                         <option value="en">English</option>
@@ -1369,14 +1275,14 @@ export function SettingsPage() {
             {activeTab === 'export' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Export & Data Management</h3>
-                  <p className="text-gray-600 mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Export & Data Management</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
                     Download your data or manage your account information.
                   </p>
                   
                   <div className="space-y-6">
                     {/* Export Section */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-lg p-6">
                       <h4 className="text-lg font-medium text-blue-900 mb-4 flex items-center">
                         <Database className="w-5 h-5 mr-2" />
                         Export Your Data
@@ -1384,28 +1290,28 @@ export function SettingsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <button 
                           onClick={handleExportProfile}
-                          className="flex items-center justify-center space-x-2 p-4 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-gray-800 border border-blue-300 rounded-lg hover:bg-blue-50 dark:bg-blue-900/20 transition-colors"
                         >
                           <Database className="w-5 h-5 text-blue-600" />
                           <span className="text-blue-700 font-medium">Export Profile Data (.json)</span>
                         </button>
                         <button 
                           onClick={handleExportAISummaries}
-                          className="flex items-center justify-center space-x-2 p-4 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-gray-800 border border-blue-300 rounded-lg hover:bg-blue-50 dark:bg-blue-900/20 transition-colors"
                         >
                           <FileText className="w-5 h-5 text-blue-600" />
                           <span className="text-blue-700 font-medium">Export AI Summaries (.json)</span>
                         </button>
                         <button 
                           onClick={handleExportActivity}
-                          className="flex items-center justify-center space-x-2 p-4 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-gray-800 border border-blue-300 rounded-lg hover:bg-blue-50 dark:bg-blue-900/20 transition-colors"
                         >
                           <BarChart3 className="w-5 h-5 text-blue-600" />
                           <span className="text-blue-700 font-medium">Export Reports (.csv)</span>
                         </button>
                         <button 
                           onClick={handleExportActivity}
-                          className="flex items-center justify-center space-x-2 p-4 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-gray-800 border border-blue-300 rounded-lg hover:bg-blue-50 dark:bg-blue-900/20 transition-colors"
                         >
                           <Activity className="w-5 h-5 text-blue-600" />
                           <span className="text-blue-700 font-medium">Export Activity Log (.json)</span>
@@ -1417,16 +1323,16 @@ export function SettingsPage() {
                     </div>
 
                     {/* Data Management */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                      <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
                         <Shield className="w-5 h-5 mr-2" />
                         Data Management
                       </h4>
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-gray-900">Clear AI Summary Cache</p>
-                            <p className="text-sm text-gray-600">Remove locally cached AI analysis results</p>
+                            <p className="font-medium text-gray-900 dark:text-white">Clear AI Summary Cache</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Remove locally cached AI analysis results</p>
                           </div>
                           <button 
                             onClick={handleClearCache}
@@ -1437,8 +1343,8 @@ export function SettingsPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-gray-900">Download Account Data</p>
-                            <p className="text-sm text-gray-600">Get a complete backup of your account information</p>
+                            <p className="font-medium text-gray-900 dark:text-white">Download Account Data</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Get a complete backup of your account information</p>
                           </div>
                           <button 
                             onClick={handleExportProfile}
@@ -1451,7 +1357,7 @@ export function SettingsPage() {
                     </div>
 
                     {/* Danger Zone */}
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg p-6">
                       <h4 className="text-lg font-medium text-red-900 mb-4 flex items-center">
                         <AlertCircle className="w-5 h-5 mr-2" />
                         Danger Zone
@@ -1460,7 +1366,7 @@ export function SettingsPage() {
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="font-medium text-red-900">Delete All Reports</p>
-                            <p className="text-sm text-red-700">Permanently remove all uploaded reports and analysis data</p>
+                            <p className="text-sm text-red-700 dark:text-red-400">Permanently remove all uploaded reports and analysis data</p>
                           </div>
                           <button 
                             onClick={handleDeleteReports}
@@ -1472,7 +1378,7 @@ export function SettingsPage() {
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="font-medium text-red-900">Delete Account</p>
-                            <p className="text-sm text-red-700">Permanently delete your account and all associated data</p>
+                            <p className="text-sm text-red-700 dark:text-red-400">Permanently delete your account and all associated data</p>
                           </div>
                           <button 
                             onClick={handleDeleteAccount}
@@ -1490,32 +1396,32 @@ export function SettingsPage() {
 
             {/* User Management Tab (Admin Only) */}
             {activeTab === 'users' && user?.role === 'admin' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">User Management</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">User Management</h2>
                 
-                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-md p-4 mb-6">
                   <div className="flex items-center space-x-2">
-                    <Shield className="w-5 h-5 text-red-600" />
-                    <span className="text-red-800 font-medium">Admin Access Required</span>
+                    <Shield className="w-5 h-5 text-red-600 dark:text-red-500" />
+                    <span className="text-red-800 dark:text-red-400 font-medium">Admin Access Required</span>
                   </div>
-                  <p className="text-red-700 text-sm mt-1">
+                  <p className="text-red-700 dark:text-red-400 text-sm mt-1">
                     This section contains sensitive user management functions.
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                      <Users className="w-5 h-5 text-gray-600" />
-                      <span className="text-gray-700">View All Users</span>
+                    <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-300 hover:bg-blue-50 dark:bg-blue-900/20 transition-colors">
+                      <Users className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      <span className="text-gray-700 dark:text-gray-300">View All Users</span>
                     </button>
-                    <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors">
-                      <User className="w-5 h-5 text-gray-600" />
-                      <span className="text-gray-700">Add New User</span>
+                    <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-green-300 hover:bg-green-50 dark:bg-green-900/20 transition-colors">
+                      <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      <span className="text-gray-700 dark:text-gray-300">Add New User</span>
                     </button>
-                    <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors">
-                      <Shield className="w-5 h-5 text-gray-600" />
-                      <span className="text-gray-700">Manage Roles</span>
+                    <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors">
+                      <Shield className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      <span className="text-gray-700 dark:text-gray-300">Manage Roles</span>
                     </button>
                   </div>
                 </div>
@@ -1524,8 +1430,8 @@ export function SettingsPage() {
 
             {/* System Stats Tab (Admin Only) */}
             {activeTab === 'system' && user?.role === 'admin' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">System Statistics</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">System Statistics</h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <div className="bg-indigo-50 p-4 rounded-lg">
@@ -1563,23 +1469,23 @@ export function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-medium text-gray-900 mb-3">Recent Activity (Last 24h)</h3>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-3">Recent Activity (Last 24h)</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">New user registrations</span>
+                      <span className="text-gray-600 dark:text-gray-400">New user registrations</span>
                       <span className="font-medium">{user?.role === 'admin' ? 3 : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Reports generated</span>
+                      <span className="text-gray-600 dark:text-gray-400">Reports generated</span>
                       <span className="font-medium">{user?.role === 'admin' ? 12 : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Active sessions</span>
+                      <span className="text-gray-600 dark:text-gray-400">Active sessions</span>
                       <span className="font-medium">{user?.role === 'admin' ? 8 : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">AI summaries generated</span>
+                      <span className="text-gray-600 dark:text-gray-400">AI summaries generated</span>
                       <span className="font-medium">{user?.role === 'admin' ? 24 : 'N/A'}</span>
                     </div>
                   </div>

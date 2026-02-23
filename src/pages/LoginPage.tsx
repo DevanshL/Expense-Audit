@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Eye, EyeOff, Shield, TrendingUp, Mail, Lock, Chrome, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { cn } from '../utils/cn';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -43,7 +44,10 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 dark:from-gray-900 via-white to-purple-50 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
@@ -55,25 +59,25 @@ export function LoginPage() {
               <TrendingUp className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">ExpenseAudit AI</h1>
-          <p className="text-gray-600 mt-2">Sign in to detect financial irregularities</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ExpenseAudit AI</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to detect financial irregularities</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 border border-gray-100 dark:border-gray-700">
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-semibold text-gray-900">Welcome back</h2>
-              <p className="text-gray-600 mt-1">Please sign in to your account</p>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Welcome back</h2>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Please sign in to your account</p>
             </div>
 
             {/* Error Display */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-medium text-red-800">Authentication Error</h3>
-                  <p className="text-sm text-red-700 mt-1">{error}</p>
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-400">Authentication Error</h3>
+                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">{error}</p>
                 </div>
               </div>
             )}
@@ -83,26 +87,26 @@ export function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={isLoading}
-              className="w-full flex items-center justify-center space-x-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center space-x-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Chrome className="w-5 h-5 text-gray-600" />
-              <span className="text-gray-700 font-medium">Continue with Google</span>
+              <Chrome className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <span className="text-gray-700 dark:text-gray-300 font-medium">Continue with Google</span>
             </button>
 
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-full border-t border-gray-300 dark:border-gray-600" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or continue with email</span>
               </div>
             </div>
 
             {/* Email/Password Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Email address
                 </label>
                 <div className="relative">
@@ -111,22 +115,23 @@ export function LoginPage() {
                   </div>
                   <input
                     {...register('email')}
+                    id="email"
                     type="email"
                     autoComplete="email"
                     placeholder="Enter your email"
                     className={cn(
                       "block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                      errors.email ? "border-red-300" : "border-gray-300"
+                      errors.email ? "border-red-300" : "border-gray-300 dark:border-gray-600"
                     )}
                   />
                 </div>
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-500">{errors.email.message}</p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Password
                 </label>
                 <div className="relative">
@@ -135,12 +140,13 @@ export function LoginPage() {
                   </div>
                   <input
                     {...register('password')}
+                    id="password"
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     placeholder="Enter your password"
                     className={cn(
                       "block w-full pl-10 pr-10 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                      errors.password ? "border-red-300" : "border-gray-300"
+                      errors.password ? "border-red-300" : "border-gray-300 dark:border-gray-600"
                     )}
                   />
                   <button
@@ -149,14 +155,14 @@ export function LoginPage() {
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   >
                     {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                     ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400" />
                     )}
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-500">{errors.password.message}</p>
                 )}
               </div>
 
@@ -166,9 +172,9 @@ export function LoginPage() {
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
                   />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                     Remember me
                   </label>
                 </div>
@@ -198,7 +204,7 @@ export function LoginPage() {
 
             {/* Sign up link */}
             <div className="text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Don't have an account?{' '}
                 <Link
                   to="/signup"
@@ -212,7 +218,7 @@ export function LoginPage() {
         </div>
 
         {/* Features */}
-        <div className="text-center text-sm text-gray-500">
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400">
           <p>Powered by advanced AI and Benford's Law analysis</p>
         </div>
       </div>

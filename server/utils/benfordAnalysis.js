@@ -85,10 +85,60 @@ function assessCompliance(mad) {
   }
 }
 
+/**
+ * Perform full Benford's Law analysis on a dataset
+ * @param {Object} dataset - Object with a `data` array of transaction rows
+ */
+function performBenfordAnalysis(dataset) {
+  const rows = dataset?.data || dataset || [];
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error('Dataset must contain a non-empty data array');
+  }
+
+  // Extract numeric amounts
+  const amounts = rows
+    .map(row => {
+      const val = row.amount ?? row.Amount ?? row.value ?? row.Value;
+      return parseFloat(val);
+    })
+    .filter(n => !isNaN(n) && isFinite(n) && n > 0);
+
+  if (amounts.length === 0) {
+    throw new Error('No valid numeric amounts found in dataset');
+  }
+
+  const digitFrequencies = calculateDigitFrequencies(amounts);
+  const mad = calculateMAD(digitFrequencies);
+  const { assessment: overallAssessment, riskLevel } = assessCompliance(mad);
+
+  // Chi-square statistic
+  const chiSquare = digitFrequencies.reduce((sum, freq) => {
+    if (freq.expected === 0) return sum;
+    const expectedCount = (freq.expected / 100) * amounts.length;
+    return sum + Math.pow(freq.count - expectedCount, 2) / expectedCount;
+  }, 0);
+
+  return {
+    totalAnalyzed: amounts.length,
+    digitFrequencies,
+    mad,
+    chiSquare,
+    overallAssessment,
+    riskLevel,
+    suspiciousVendors: [],
+    flaggedTransactions: [],
+    warnings: amounts.length < 30
+      ? ['Sample size is small (< 30 transactions). Results may not be statistically reliable.']
+      : [],
+  };
+}
+
 module.exports = {
   BENFORDS_EXPECTED,
   extractFirstDigit,
   calculateDigitFrequencies,
   calculateMAD,
-  assessCompliance
+  assessCompliance,
+  performBenfordAnalysis,
 };

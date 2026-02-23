@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, TrendingUp } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
+  const { initializeUser } = useAuth();
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -13,17 +15,16 @@ export function AuthCallbackPage() {
         const refresh = urlParams.get('refresh');
         
         if (token && refresh) {
-          // Store tokens
           localStorage.setItem('expense-audit-token', token);
           localStorage.setItem('expense-audit-refresh-token', refresh);
           
           // Clear URL parameters
           window.history.replaceState({}, document.title, window.location.pathname);
           
-          // Redirect to upload page after a short delay to allow auth context to update
-          setTimeout(() => {
-            navigate('/upload', { replace: true });
-          }, 500);
+          // Re-initialize the user context with the new tokens before redirecting
+          await initializeUser();
+          
+          navigate('/upload', { replace: true });
         } else {
           // No tokens found, redirect to login
           setTimeout(() => {
@@ -39,7 +40,7 @@ export function AuthCallbackPage() {
     };
 
     handleOAuthCallback();
-  }, [navigate]);
+  }, [navigate]); // explicitly excluded initializeUser to prevent double-firing loops if it changes reference
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">

@@ -47,20 +47,10 @@ const userSchema = new mongoose.Schema({
   aiConfig: {
     preferredProvider: {
       type: String,
-      enum: ['openai', 'gemini', 'anthropic', 'azure'],
-      default: 'openai'
+      enum: ['gemini', 'grok', 'openai', 'anthropic'],
+      default: 'gemini'
     },
     models: {
-      openai: {
-        model: {
-          type: String,
-          default: process.env.DEFAULT_OPENAI_MODEL || 'gpt-4o-mini'
-        },
-        apiKey: {
-          type: String,
-          select: false // Exclude from queries by default for security
-        }
-      },
       gemini: {
         model: {
           type: String,
@@ -71,30 +61,32 @@ const userSchema = new mongoose.Schema({
           select: false
         }
       },
-      anthropic: {
+      grok: {
         model: {
           type: String,
-          default: process.env.DEFAULT_ANTHROPIC_MODEL || 'claude-4-opus'
+          default: process.env.DEFAULT_GROQ_MODEL || 'llama-3.3-70b-versatile'
         },
         apiKey: {
           type: String,
           select: false
         }
       },
-      azure: {
+      openai: {
         model: {
           type: String,
-          default: 'gpt-4o'
+          default: process.env.DEFAULT_OPENAI_MODEL || 'gpt-4o-mini'
         },
         apiKey: {
           type: String,
           select: false
-        },
-        endpoint: {
+        }
+      },
+      anthropic: {
+        model: {
           type: String,
-          select: false
+          default: 'claude-3-sonnet'
         },
-        deploymentName: {
+        apiKey: {
           type: String,
           select: false
         }
