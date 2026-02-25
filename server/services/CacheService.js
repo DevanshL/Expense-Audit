@@ -7,8 +7,21 @@ class CacheService {
     this.isEnabled = false;
 
     if (process.env.REDIS_URL) {
-      logger.warn('Redis init disabled locally to prevent crash loop.');
-      this.isEnabled = false;
+      try {
+        this.client = new Redis(process.env.REDIS_URL, {
+          maxRetriesPerRequest: 3,
+          enableOfflineQueue: false
+        });
+        this.isEnabled = true;
+        logger.info(`Redis connected successfully`);
+        
+        this.client.on('error', (err) => {
+          logger.error('Redis connection error:', err);
+        });
+      } catch (error) {
+        logger.error('Failed to initialize Redis:', error);
+        this.isEnabled = false;
+      }
     } else {
       logger.warn('REDIS_URL not provided. Caching is disabled.');
     }
