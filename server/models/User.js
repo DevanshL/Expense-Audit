@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: function() {
-      return !this.googleId; // Password not required for Google OAuth users
+      return !this.googleId;
     },
     minlength: 8
   },
@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema({
   googleId: {
     type: String,
     unique: true,
-    sparse: true // Allows multiple null values but unique non-null values
+    sparse: true
   },
   avatar: {
     type: String,
@@ -47,20 +47,10 @@ const userSchema = new mongoose.Schema({
   aiConfig: {
     preferredProvider: {
       type: String,
-      enum: ['openai', 'gemini', 'anthropic', 'azure'],
-      default: 'openai'
+      enum: ['gemini', 'ollama'],
+      default: 'gemini'
     },
     models: {
-      openai: {
-        model: {
-          type: String,
-          default: process.env.DEFAULT_OPENAI_MODEL || 'gpt-4o-mini'
-        },
-        apiKey: {
-          type: String,
-          select: false // Exclude from queries by default for security
-        }
-      },
       gemini: {
         model: {
           type: String,
@@ -71,34 +61,41 @@ const userSchema = new mongoose.Schema({
           select: false
         }
       },
-      anthropic: {
+      ollama: {
         model: {
           type: String,
-          default: process.env.DEFAULT_ANTHROPIC_MODEL || 'claude-4-opus'
-        },
-        apiKey: {
-          type: String,
-          select: false
-        }
-      },
-      azure: {
-        model: {
-          type: String,
-          default: 'gpt-4o'
-        },
-        apiKey: {
-          type: String,
-          select: false
-        },
-        endpoint: {
-          type: String,
-          select: false
-        },
-        deploymentName: {
-          type: String,
-          select: false
+          default: process.env.DEFAULT_OLLAMA_MODEL || 'llama3'
         }
       }
+    }
+  },
+  // Stripe billing
+  stripe: {
+    customerId: {
+      type: String,
+      sparse: true
+    },
+    subscriptionId: {
+      type: String,
+      sparse: true
+    },
+    plan: {
+      type: String,
+      enum: ['free', 'pro', 'enterprise'],
+      default: 'free'
+    },
+    planInterval: {
+      type: String,
+      enum: ['monthly', 'yearly', null],
+      default: null
+    },
+    currentPeriodEnd: {
+      type: Date,
+      default: null
+    },
+    cancelAtPeriodEnd: {
+      type: Boolean,
+      default: false
     }
   },
   // Account management
@@ -167,7 +164,7 @@ const userSchema = new mongoose.Schema({
     theme: {
       type: String,
       enum: ['light', 'dark', 'system'],
-      default: 'light'
+      default: 'dark'
     },
     density: {
       type: String,
@@ -206,11 +203,8 @@ userSchema.virtual('isLocked').get(function() {
 
 // Pre-save middleware to hash password
 userSchema.pre('save', async function(next) {
-  // Only hash password if it has been modified (or is new)
   if (!this.isModified('password')) return next();
-  
   try {
-    // Hash password with cost of 12
     const rounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
     this.password = await bcrypt.hash(this.password, rounds);
     next();
@@ -227,21 +221,16 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Instance method to handle failed login attempts
 userSchema.methods.incLoginAttempts = function() {
-  // If we have a previous lock that has expired, restart at 1
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return this.updateOne({
       $unset: { lockUntil: 1 },
       $set: { loginAttempts: 1 }
     });
   }
-  
   const updates = { $inc: { loginAttempts: 1 } };
-  
-  // Lock account after 5 failed attempts for 2 hours
   if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
-    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // 2 hours
+    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 };
   }
-  
   return this.updateOne(updates);
 };
 
@@ -254,7 +243,7 @@ userSchema.methods.resetLoginAttempts = function() {
 
 // Instance method to update last login
 userSchema.methods.updateLastLogin = function() {
-  return this.updateOne({ 
+  return this.updateOne({
     lastLogin: new Date(),
     'stats.lastActivity': new Date()
   });
@@ -262,29 +251,29 @@ userSchema.methods.updateLastLogin = function() {
 
 // Instance methods for updating statistics
 userSchema.methods.incrementFileUploads = function() {
-  return this.updateOne({ 
+  return this.updateOne({
     $inc: { 'stats.filesUploaded': 1 },
     $set: { 'stats.lastActivity': new Date() }
   });
 };
 
 userSchema.methods.incrementAISummaries = function() {
-  return this.updateOne({ 
+  return this.updateOne({
     $inc: { 'stats.aiSummariesGenerated': 1 },
     $set: { 'stats.lastActivity': new Date() }
   });
 };
 
 userSchema.methods.incrementReports = function() {
-  return this.updateOne({ 
+  return this.updateOne({
     $inc: { 'stats.reportsGenerated': 1 },
     $set: { 'stats.lastActivity': new Date() }
   });
 };
 
 userSchema.methods.updatePreferences = function(preferences) {
-  return this.updateOne({ 
-    $set: { 
+  return this.updateOne({
+    $set: {
       preferences: { ...this.preferences, ...preferences },
       'stats.lastActivity': new Date()
     }
@@ -293,38 +282,37 @@ userSchema.methods.updatePreferences = function(preferences) {
 
 // Static method to find by credentials
 userSchema.statics.findByCredentials = async function(email, password) {
-  const user = await this.findOne({ 
+  const user = await this.findOne({
     email,
-    isActive: true 
+    isActive: true
   }).select('+password');
-  
+
   if (!user) {
     throw new Error('Invalid credentials');
   }
-  
+
   if (user.isLocked) {
     throw new Error('Account temporarily locked due to too many failed login attempts');
   }
-  
+
   const isMatch = await user.comparePassword(password);
-  
+
   if (!isMatch) {
     await user.incLoginAttempts();
     throw new Error('Invalid credentials');
   }
-  
-  // Reset login attempts on successful login
+
   if (user.loginAttempts > 0) {
     await user.resetLoginAttempts();
   }
-  
+
   await user.updateLastLogin();
   return user;
 };
 
 // Static method to get user with AI config
 userSchema.statics.findWithAIConfig = async function(userId) {
-  return this.findById(userId).select('+aiConfig.models.openai.apiKey +aiConfig.models.gemini.apiKey +aiConfig.models.anthropic.apiKey +aiConfig.models.azure.apiKey +aiConfig.models.azure.endpoint +aiConfig.models.azure.deploymentName');
+  return this.findById(userId).select('+aiConfig.models.gemini.apiKey');
 };
 
 module.exports = mongoose.model('User', userSchema);

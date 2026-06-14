@@ -28,18 +28,14 @@ export function useUsageTracking() {
   // Fetch usage statistics
   const fetchUsageStats = useCallback(async () => {
     if (!isAuthenticated) {
-      console.log('Not authenticated, skipping usage stats fetch');
       return;
     }
-
-    console.log('Fetching usage stats - authenticated:', isAuthenticated, 'user:', user?.email);
     
     setLoading(true);
     setError(null);
 
     try {
       const token = localStorage.getItem('expense-audit-token');
-      console.log('Token available:', !!token);
       
       const response = await fetch(`${API_BASE}/users/usage`, {
         method: 'GET',
@@ -49,8 +45,6 @@ export function useUsageTracking() {
         }
       });
 
-      console.log('Response status:', response.status, 'ok:', response.ok);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Response error:', errorText);
@@ -58,7 +52,6 @@ export function useUsageTracking() {
       }
 
       const data = await response.json();
-      console.log('Usage stats response:', data);
       
       if (data.success) {
         setUsageData(data.data);

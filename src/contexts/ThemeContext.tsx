@@ -25,10 +25,10 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>('dark');
   const [density, setDensity] = useState<Density>('comfortable');
   const [language, setLanguage] = useState('en');
   const [isDark, setIsDark] = useState(false);
@@ -38,10 +38,18 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   // Load preferences from localStorage or backend
   useEffect(() => {
     const loadPreferences = async () => {
+      // First: immediately apply from localStorage so there's no flash
+      const storedTheme = localStorage.getItem('expense-audit-theme') as Theme;
+      const storedDensity = localStorage.getItem('expense-audit-density') as Density;
+      const storedLanguage = localStorage.getItem('expense-audit-language') || 'en';
+      if (storedTheme) setTheme(storedTheme);
+      if (storedDensity) setDensity(storedDensity);
+      setLanguage(storedLanguage);
+
       if (isAuthenticated && user) {
         setLoadingPreferences(true);
         try {
-          // Load from backend if user is authenticated
+          // Sync with backend
           const response = await fetch(`${API_BASE}/users/preferences`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('expense-audit-token')}`
@@ -51,33 +59,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.data) {
-              setTheme(data.data.theme || 'light');
+              setTheme(data.data.theme || 'dark');
               setDensity(data.data.density || 'comfortable');
               setLanguage(data.data.language || 'en');
             }
           }
         } catch (error) {
           console.error('Failed to load preferences from backend:', error);
-          // Fall back to localStorage
-          const storedTheme = localStorage.getItem('expense-audit-theme') as Theme;
-          const storedDensity = localStorage.getItem('expense-audit-density') as Density;
-          const storedLanguage = localStorage.getItem('expense-audit-language') || 'en';
-          
-          if (storedTheme) setTheme(storedTheme);
-          if (storedDensity) setDensity(storedDensity);
-          setLanguage(storedLanguage);
+          // Already applied from localStorage above, nothing more to do
         } finally {
           setLoadingPreferences(false);
         }
-      } else {
-        // Load from localStorage for non-authenticated users
-        const storedTheme = localStorage.getItem('expense-audit-theme') as Theme;
-        const storedDensity = localStorage.getItem('expense-audit-density') as Density;
-        const storedLanguage = localStorage.getItem('expense-audit-language') || 'en';
-        
-        if (storedTheme) setTheme(storedTheme);
-        if (storedDensity) setDensity(storedDensity);
-        setLanguage(storedLanguage);
       }
     };
 
@@ -117,8 +109,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     localStorage.setItem('expense-audit-language', language);
   }, [language]);
 
-  // Update preferences in backend
+  // Update preferences — apply immediately (optimistic), then sync to backend
   const updatePreferences = async (preferences: Partial<{ theme: Theme; density: Density; language: string }>) => {
+    // Apply immediately regardless of auth/backend status
+    if (preferences.theme !== undefined) setTheme(preferences.theme);
+    if (preferences.density !== undefined) setDensity(preferences.density);
+    if (preferences.language !== undefined) setLanguage(preferences.language);
+
     if (!isAuthenticated) return;
 
     try {
@@ -132,17 +129,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update preferences');
+        console.warn('Backend preferences save failed, changes kept locally.');
       }
-
-      // Update local state
-      if (preferences.theme !== undefined) setTheme(preferences.theme);
-      if (preferences.density !== undefined) setDensity(preferences.density);
-      if (preferences.language !== undefined) setLanguage(preferences.language);
-
     } catch (error) {
-      console.error('Failed to update preferences:', error);
-      throw error;
+      console.error('Failed to sync preferences to backend:', error);
+      // Don't throw — local state is already updated, that's good enough
     }
   };
 

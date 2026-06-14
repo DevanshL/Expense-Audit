@@ -11,6 +11,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { PricingPage } from './pages/PricingPage';
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +25,11 @@ export const router = createBrowserRouter([
   {
     path: '/auth/callback',
     element: <AuthCallbackPage />,
+  },
+  // Pricing is accessible without login so users can see plans before signing up
+  {
+    path: '/pricing',
+    element: <PricingPage />,
   },
   {
     path: '/',

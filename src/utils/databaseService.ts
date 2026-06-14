@@ -28,14 +28,10 @@ interface UserPreferences {
 interface APIKeyConfiguration {
   id: string;
   userId: string;
-  provider: 'openai' | 'anthropic' | 'gemini' | 'azure';
+  provider: 'gemini' | 'ollama';
   keyName: string;
   encryptedKey: string;
   isActive: boolean;
-  azureConfig?: {
-    endpoint: string;
-    deploymentName: string;
-  };
   usageStats: {
     totalTokens: number;
     totalCost: number;
@@ -63,16 +59,9 @@ interface ModelConfiguration {
 interface AIConfiguration {
   id: string;
   userId: string;
-  preferredProvider: 'openai' | 'anthropic' | 'gemini' | 'azure';
+  preferredProvider: 'gemini' | 'ollama';
   apiKeys: {
-    openai?: string;
-    anthropic?: string;
     gemini?: string;
-    azure?: {
-      apiKey: string;
-      endpoint: string;
-      deploymentName: string;
-    };
   };
   selectedModel: string;
   temperature: number;
@@ -514,9 +503,9 @@ export class DatabaseService {
     const aiConfig: AIConfiguration = {
       id: existingConfig?.id || this.generateId(),
       userId,
-      preferredProvider: config.preferredProvider || 'openai',
+      preferredProvider: config.preferredProvider || 'gemini',
       apiKeys: config.apiKeys || {},
-      selectedModel: config.selectedModel || 'gpt-4o-mini',
+      selectedModel: config.selectedModel || 'gemini-2.0-flash',
       temperature: config.temperature || 0.7,
       maxTokens: config.maxTokens || 1000,
       createdAt: existingConfig?.createdAt || now,

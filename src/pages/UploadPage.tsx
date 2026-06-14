@@ -17,6 +17,7 @@ export function UploadPage() {
 
   const handleComplete = (processedDataset: ProcessedDataset) => {
     setDataset(processedDataset);
+    localStorage.removeItem('expense-audit-ai-summary'); // Clear old summary
     success('Data processed successfully!', 'Your data is ready for Benford\'s Law analysis.');
     navigate('/analysis');
   };

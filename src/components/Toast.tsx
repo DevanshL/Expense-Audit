@@ -87,7 +87,7 @@ function ToastComponent({ toast, onDismiss }: ToastComponentProps) {
       </div>
       <button
         onClick={handleDismiss}
-        className="ml-4 inline-flex text-gray-400 hover:text-gray-600 transition-colors"
+        className="ml-4 inline-flex text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
         title="Dismiss notification"
         aria-label="Dismiss notification"
       >

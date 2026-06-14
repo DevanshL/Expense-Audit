@@ -13,7 +13,6 @@ const router = express.Router();
  * @access Public
  */
 router.get('/usage/test', async (req, res) => {
-  console.log('TEST: Usage test endpoint hit');
   res.json({
     success: true,
     message: 'Usage endpoint is working',
@@ -30,17 +29,11 @@ router.get('/usage',
   authenticateToken,
   async (req, res) => {
     try {
-      console.log('Usage stats request - User ID:', req.user._id);
-      console.log('Usage stats request - User object:', req.user);
-
       const user = await User.findById(req.user._id)
         .select('stats lastLogin name email')
         .lean();
 
-      console.log('Found user:', user);
-
       if (!user) {
-        console.log('User not found in database');
         return res.status(404).json({
           success: false,
           message: 'User not found'
@@ -55,8 +48,6 @@ router.get('/usage',
         lastActivity: user.stats?.lastActivity || new Date(),
         lastLogin: user.lastLogin || null
       };
-
-      console.log('Returning stats:', stats);
 
       logger.info('Usage statistics retrieved for user:', {
         userId: req.user._id,
@@ -167,7 +158,7 @@ router.get('/preferences',
 
       // Ensure preferences object exists with defaults
       const preferences = {
-        theme: user.preferences?.theme || 'light',
+        theme: user.preferences?.theme || 'dark',
         density: user.preferences?.density || 'comfortable',
         language: user.preferences?.language || 'en'
       };
@@ -264,7 +255,7 @@ router.get('/export/profile',
   async (req, res) => {
     try {
       const user = await User.findById(req.user._id)
-        .select('-password -refreshTokens -aiConfig.models.openai.apiKey -aiConfig.models.gemini.apiKey -aiConfig.models.anthropic.apiKey -aiConfig.models.azure.apiKey')
+        .select('-password -refreshTokens -aiConfig.models.gemini.apiKey')
         .lean();
 
       if (!user) {

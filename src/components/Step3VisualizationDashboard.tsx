@@ -74,15 +74,18 @@ export function Step3VisualizationDashboard({ dataset, onBack, onContinue, class
 
   if (isAnalyzing) {
     return (
-      <div className={cn('max-w-7xl mx-auto', className)}>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <h2 className="text-xl font-semibold text-gray-900">
+      <div className={cn('max-w-5xl mx-auto py-12 animate-fadeIn', className)}>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="text-center space-y-6">
+            <div className="relative">
+              <div className="w-20 h-20 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mx-auto"></div>
+              <BarChart3 className="w-7 h-7 text-indigo-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+            </div>
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Generating Interactive Dashboard...
             </h2>
-            <p className="text-gray-600">
-              Processing your analysis results for visualization
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+              Applying final statistical mappings for interactive visual diagnostics
             </p>
           </div>
         </div>
@@ -92,23 +95,24 @@ export function Step3VisualizationDashboard({ dataset, onBack, onContinue, class
 
   if (analysisError) {
     return (
-      <div className={cn('max-w-7xl mx-auto', className)}>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-              <FileText className="w-8 h-8 text-red-600" />
+      <div className={cn('max-w-5xl mx-auto py-12 animate-fadeIn', className)}>
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <div className="text-center space-y-6">
+            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl w-max mx-auto">
+              <FileText className="w-12 h-12 text-rose-500" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              Dashboard Error
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Dashboard Generation Failed
             </h2>
-            <p className="text-gray-600 max-w-md">
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
               {analysisError}
             </p>
             <button
               onClick={onBack}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer"
             >
-              Back to Analysis
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Analysis</span>
             </button>
           </div>
         </div>
@@ -118,21 +122,22 @@ export function Step3VisualizationDashboard({ dataset, onBack, onContinue, class
 
   if (!benfordResult) {
     return (
-      <div className={cn('max-w-7xl mx-auto', className)}>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <BarChart3 className="w-16 h-16 text-gray-400 mx-auto" />
-            <h2 className="text-xl font-semibold text-gray-900">
-              No Analysis Results
+      <div className={cn('max-w-5xl mx-auto py-12 animate-fadeIn', className)}>
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <div className="text-center space-y-6">
+            <BarChart3 className="w-16 h-16 text-slate-450 mx-auto" />
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Missing Ledger Analytics
             </h2>
-            <p className="text-gray-600">
-              Please run the Benford analysis first to view the dashboard
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+              Please complete the Step 2 Benford analysis first to explore findings.
             </p>
             <button
               onClick={onBack}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer"
             >
-              Back to Analysis
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Analysis</span>
             </button>
           </div>
         </div>
@@ -143,42 +148,42 @@ export function Step3VisualizationDashboard({ dataset, onBack, onContinue, class
   return (
     <div id="visualization-dashboard" className={cn('max-w-7xl mx-auto space-y-8 animate-fadeIn', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="glass-panel border border-slate-200/60 dark:border-slate-800/60 rounded-2xl px-6 py-4 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <button
             onClick={onBack}
-            className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Analysis</span>
+            <ArrowLeft className="w-4 h-4" />
           </button>
-          <div className="h-6 w-px bg-gray-300"></div>
+          <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Interactive Fraud Detection Dashboard
             </h1>
-            <p className="text-gray-600">
-              Step 3: Comprehensive visualization of Benford's Law analysis results
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Step 3: High-fidelity visualizations of statistical Benford anomalies
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3 w-full md:w-auto justify-end">
           <button
             onClick={handleExportReport}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-550 text-white text-xs font-bold rounded-xl shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer border border-white/10"
           >
-            <Download className="w-4 h-4" />
-            <span>Export Report</span>
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Report JSON</span>
           </button>
           
           {onContinue && (
             <button
               onClick={onContinue}
-              className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+              className="px-5 py-2.5 bg-gradient-to-r from-indigo-650 via-purple-650 to-indigo-650 hover:from-indigo-600 hover:to-purple-600 text-white text-xs font-extrabold rounded-xl shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer relative overflow-hidden group border border-white/10"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>AI Summary</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shine_1.5s_ease-in-out_infinite]" />
+              <Sparkles className="w-3.5 h-3.5 animate-pulse text-indigo-200" />
+              <span>Continue to AI Summary</span>
             </button>
           )}
         </div>
@@ -212,67 +217,67 @@ export function Step3VisualizationDashboard({ dataset, onBack, onContinue, class
 
       {/* Modal/Details Panel for Selected Items */}
       {selectedVendor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+        <div className="fixed inset-0 backdrop-blur-md bg-slate-950/40 z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="glass-panel shadow-2xl border border-white/20 dark:border-slate-800/40 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200/50 dark:border-slate-800/40">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   Vendor Analysis: {selectedVendor.vendor}
                 </h3>
                 <button
                   onClick={() => setSelectedVendor(null)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-500/10 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-500/20 transition-all font-bold"
                 >
                   ×
                 </button>
               </div>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Transaction Count</label>
-                  <p className="text-xl font-bold text-gray-900">{selectedVendor.transactionCount.toLocaleString()}</p>
+                <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/50 dark:border-slate-800/30">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Transaction Count</label>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white">{selectedVendor.transactionCount.toLocaleString()}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Risk Level</label>
+                <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/50 dark:border-slate-800/30">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Risk Level</label>
                   <p className={cn(
-                    'text-xl font-bold capitalize',
-                    selectedVendor.riskLevel === 'critical' ? 'text-red-600' :
-                    selectedVendor.riskLevel === 'high' ? 'text-red-500' :
-                    selectedVendor.riskLevel === 'medium' ? 'text-amber-600' : 'text-green-600'
+                    'text-2xl font-black capitalize',
+                    selectedVendor.riskLevel === 'critical' ? 'text-red-600 dark:text-red-400' :
+                    selectedVendor.riskLevel === 'high' ? 'text-red-500 dark:text-red-450' :
+                    selectedVendor.riskLevel === 'medium' ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'
                   )}>
                     {selectedVendor.riskLevel}
                   </p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">MAD Score</label>
-                  <p className="text-xl font-bold text-gray-900">{selectedVendor.mad.toFixed(2)}</p>
+                <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/50 dark:border-slate-800/30">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">MAD Score</label>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white">{selectedVendor.mad.toFixed(2)}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Chi-Square</label>
-                  <p className="text-xl font-bold text-gray-900">{selectedVendor.chiSquare.toFixed(2)}</p>
+                <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/50 dark:border-slate-800/30">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Chi-Square</label>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white">{selectedVendor.chiSquare.toFixed(2)}</p>
                 </div>
               </div>
               
               {selectedVendor.suspiciousPatterns.length > 0 && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-2">Suspicious Patterns</label>
-                  <ul className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">Suspicious Patterns</label>
+                  <ul className="space-y-2">
                     {selectedVendor.suspiciousPatterns.map((pattern, index) => (
-                      <li key={index} className="text-sm text-red-700 bg-red-50 px-3 py-2 rounded-md">
+                      <li key={index} className="text-sm font-semibold text-red-700 dark:text-red-400 bg-red-500/10 dark:bg-red-950/20 border border-red-550/10 px-3 py-2.5 rounded-xl">
                         {pattern}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-
+ 
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-2">Digit Distribution</label>
-                <div className="grid grid-cols-3 gap-2 text-sm">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">Digit Distribution</label>
+                <div className="grid grid-cols-3 gap-2 text-xs">
                   {Object.entries(selectedVendor.digitDistribution).map(([digit, count]) => (
-                    <div key={digit} className="bg-gray-50 px-3 py-2 rounded text-center">
-                      <span className="font-medium">Digit {digit}:</span> {count}
+                    <div key={digit} className="bg-slate-500/5 dark:bg-slate-950/30 border border-slate-200/50 dark:border-slate-800/60 px-3 py-2 rounded-xl text-center text-slate-800 dark:text-slate-200 font-bold">
+                      <span className="opacity-60">Digit {digit}:</span> {count}
                     </div>
                   ))}
                 </div>
@@ -281,58 +286,58 @@ export function Step3VisualizationDashboard({ dataset, onBack, onContinue, class
           </div>
         </div>
       )}
-
+ 
       {selectedTransaction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full">
-            <div className="p-6 border-b border-gray-200">
+        <div className="fixed inset-0 backdrop-blur-md bg-slate-950/40 z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="glass-panel shadow-2xl border border-white/20 dark:border-slate-800/40 rounded-2xl max-w-lg w-full">
+            <div className="p-6 border-b border-slate-200/50 dark:border-slate-800/40">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   Transaction Details
                 </h3>
                 <button
                   onClick={() => setSelectedTransaction(null)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-500/10 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-500/20 transition-all font-bold"
                 >
                   ×
                 </button>
               </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Amount</label>
-                <p className="text-xl font-bold text-gray-900">
+            <div className="p-6 space-y-5">
+              <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/50 dark:border-slate-800/30">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Amount</label>
+                <p className="text-3xl font-black text-slate-900 dark:text-white">
                   ${selectedTransaction.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
               
               {selectedTransaction.vendor && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Vendor</label>
-                  <p className="text-lg text-gray-900">{selectedTransaction.vendor}</p>
+                <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/50 dark:border-slate-800/30">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Vendor</label>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{selectedTransaction.vendor}</p>
                 </div>
               )}
-
+ 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">First Digit</label>
-                  <p className="text-lg font-bold text-gray-900">{selectedTransaction.firstDigit}</p>
+                <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/50 dark:border-slate-800/30">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">First Digit</label>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">{selectedTransaction.firstDigit}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Risk Level</label>
+                <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/50 dark:border-slate-800/30">
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Risk Level</label>
                   <p className={cn(
-                    'text-lg font-bold capitalize',
-                    selectedTransaction.riskLevel === 'critical' ? 'text-red-600' :
-                    selectedTransaction.riskLevel === 'high' ? 'text-red-500' : 'text-amber-600'
+                    'text-xl font-black capitalize',
+                    selectedTransaction.riskLevel === 'critical' ? 'text-red-600 dark:text-red-400' :
+                    selectedTransaction.riskLevel === 'high' ? 'text-red-500 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
                   )}>
                     {selectedTransaction.riskLevel}
                   </p>
                 </div>
               </div>
-
+ 
               <div>
-                <label className="text-sm font-medium text-gray-700">Reason for Flagging</label>
-                <p className="text-sm text-gray-900 bg-amber-50 p-3 rounded-md mt-1">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Reason for Flagging</label>
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-950/20 border border-amber-550/20 rounded-xl p-3.5 mt-1">
                   {selectedTransaction.reason}
                 </p>
               </div>

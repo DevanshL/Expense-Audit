@@ -1,10 +1,18 @@
 const express = require('express');
+const passport = require('passport');
 const AuthController = require('../controllers/AuthController');
 const { authenticateToken, logAction } = require('../middleware/auth');
 const {
   validateUserRegistration,
   validateUserLogin,
+  validateProfileUpdate,
+  validateAIConfig,
 } = require('../middleware/validation');
+
+const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
+const logger = require('../utils/logger');
+const { encrypt, decrypt } = require('../utils/crypto');
 
 const router = express.Router();
 
@@ -26,7 +34,13 @@ router.get('/google', AuthController.googleLogin);
 /**
  * @route GET /api/auth/google/callback
  */
-router.get('/google/callback', AuthController.googleCallback);
+router.get('/google/callback', 
+  passport.authenticate('google', { 
+    session: false, 
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=oauth_failed` 
+  }),
+  AuthController.googleCallback
+);
 
 /**
  * @route POST /api/auth/refresh
@@ -255,7 +269,7 @@ router.get('/password-status', authenticateToken, async (req, res) => {
  */
 router.put('/ai-config', authenticateToken, validateAIConfig, logAction('ai_config_update'), async (req, res) => {
   try {
-    const { preferredProvider, model, apiKey, azureEndpoint, azureDeployment } = req.body;
+    const { preferredProvider, model, apiKey } = req.body;
     const user = await User.findById(req.user._id);
 
     if (!user) {
@@ -268,12 +282,10 @@ router.put('/ai-config', authenticateToken, validateAIConfig, logAction('ai_conf
     // Initialize aiConfig if it doesn't exist
     if (!user.aiConfig) {
       user.aiConfig = {
-        preferredProvider: 'openai',
+        preferredProvider: 'gemini',
         models: {
-          openai: { model: 'gpt-4o-mini' },
           gemini: { model: 'gemini-2.0-flash' },
-          anthropic: { model: 'claude-3-sonnet' },
-          azure: { model: 'gpt-4o' }
+          ollama: { model: 'llama3' }
         }
       };
     }
@@ -281,10 +293,8 @@ router.put('/ai-config', authenticateToken, validateAIConfig, logAction('ai_conf
     // Initialize models if they don't exist
     if (!user.aiConfig.models) {
       user.aiConfig.models = {
-        openai: { model: 'gpt-4o-mini' },
         gemini: { model: 'gemini-2.0-flash' },
-        anthropic: { model: 'claude-3-sonnet' },
-        azure: { model: 'gpt-4o' }
+        ollama: { model: 'llama3' }
       };
     }
 
@@ -300,16 +310,10 @@ router.put('/ai-config', authenticateToken, validateAIConfig, logAction('ai_conf
     user.aiConfig.models[preferredProvider].model = model;
 
     // Encrypt and store API key
-    user.aiConfig.models[preferredProvider].apiKey = encrypt(apiKey);
-
-    // Handle Azure-specific fields
-    if (preferredProvider === 'azure') {
-      if (azureEndpoint) {
-        user.aiConfig.models[preferredProvider].endpoint = encrypt(azureEndpoint);
-      }
-      if (azureDeployment) {
-        user.aiConfig.models[preferredProvider].deploymentName = azureDeployment;
-      }
+    if (apiKey) {
+      user.aiConfig.models[preferredProvider].apiKey = encrypt(apiKey);
+    } else {
+      user.aiConfig.models[preferredProvider].apiKey = undefined;
     }
 
     // Save the updated user
@@ -319,8 +323,7 @@ router.put('/ai-config', authenticateToken, validateAIConfig, logAction('ai_conf
     await AuditLog.logAction(user._id, 'ai_config_updated', {
       provider: preferredProvider,
       model: model,
-      hasApiKey: true,
-      isAzure: preferredProvider === 'azure'
+      hasApiKey: !!apiKey
     }, req);
 
     // Return response without sensitive data
@@ -333,11 +336,7 @@ router.put('/ai-config', authenticateToken, validateAIConfig, logAction('ai_conf
     for (const [provider, config] of Object.entries(user.aiConfig.models)) {
       responseConfig.models[provider] = {
         model: config.model || null,
-        hasApiKey: !!config.apiKey,
-        ...(provider === 'azure' && {
-          hasEndpoint: !!config.endpoint,
-          hasDeploymentName: !!config.deploymentName
-        })
+        hasApiKey: !!config.apiKey
       };
     }
 
@@ -386,12 +385,10 @@ router.get('/ai-config', authenticateToken, async (req, res) => {
     // Initialize default config if none exists
     if (!user.aiConfig || !user.aiConfig.models) {
       const defaultConfig = {
-        preferredProvider: 'openai',
+        preferredProvider: 'gemini',
         models: {
-          openai: { model: 'gpt-4o-mini', hasApiKey: false },
           gemini: { model: 'gemini-2.0-flash', hasApiKey: false },
-          anthropic: { model: 'claude-3-sonnet', hasApiKey: false },
-          azure: { model: 'gpt-4o', hasApiKey: false, hasEndpoint: false, hasDeploymentName: false }
+          ollama: { model: 'llama3', hasApiKey: false }
         }
       };
 
@@ -403,24 +400,18 @@ router.get('/ai-config', authenticateToken, async (req, res) => {
 
     // Build response with security indicators (no actual API keys)
     const responseConfig = {
-      preferredProvider: user.aiConfig.preferredProvider || 'openai',
+      preferredProvider: user.aiConfig.preferredProvider || 'gemini',
       models: {}
     };
 
-    const providers = ['openai', 'gemini', 'anthropic', 'azure'];
+    const providers = ['gemini', 'ollama'];
     
     for (const provider of providers) {
       const config = user.aiConfig.models[provider] || {};
       
       responseConfig.models[provider] = {
-        model: config.model || (provider === 'openai' ? 'gpt-4o-mini' : 
-                              provider === 'gemini' ? 'gemini-2.0-flash' :
-                              provider === 'anthropic' ? 'claude-3-sonnet' : 'gpt-4o'),
-        hasApiKey: !!config.apiKey,
-        ...(provider === 'azure' && {
-          hasEndpoint: !!config.endpoint,
-          hasDeploymentName: !!config.deploymentName
-        })
+        model: config.model || (provider === 'gemini' ? 'gemini-2.0-flash' : 'llama3'),
+        hasApiKey: !!config.apiKey
       };
     }
 
@@ -452,6 +443,14 @@ router.get('/ai-config', authenticateToken, async (req, res) => {
 router.get('/ai-config/credentials/:provider', authenticateToken, async (req, res) => {
   try {
     const { provider } = req.params;
+    
+    if (!['gemini', 'ollama'].includes(provider)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid provider'
+      });
+    }
+
     const user = await User.findById(req.user._id);
     
     if (!user || !user.aiConfig || !user.aiConfig.models[provider]) {
@@ -466,11 +465,7 @@ router.get('/ai-config/credentials/:provider', authenticateToken, async (req, re
     const credentials = {
       provider,
       model: config.model,
-      apiKey: config.apiKey ? decrypt(config.apiKey) : null,
-      ...(provider === 'azure' && {
-        endpoint: config.endpoint ? decrypt(config.endpoint) : null,
-        deploymentName: config.deploymentName || null
-      })
+      apiKey: config.apiKey ? decrypt(config.apiKey) : null
     };
 
     // Log access to credentials

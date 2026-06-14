@@ -25,24 +25,26 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    const deviationColor = data.deviation > 5 ? 'text-red-600' : data.deviation > 2 ? 'text-amber-600' : 'text-green-600';
+    const deviationColor = data.deviation > 5 ? 'text-red-400' : data.deviation > 2 ? 'text-amber-400' : 'text-emerald-400';
     
     return (
-      <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
-        <p className="font-semibold text-gray-900 mb-2">Digit {label}</p>
-        <div className="space-y-1 text-sm">
+      <div className="glass-panel border border-slate-200/60 dark:border-slate-700/50 p-4 rounded-xl shadow-xl">
+        <p className="font-bold text-slate-900 dark:text-white mb-2 text-sm">Digit {label}</p>
+        <div className="space-y-1 text-xs">
           <p>
-            <span className="text-blue-600 font-medium">Observed:</span> {data.observed.toFixed(1)}% ({data.count} transactions)
+            <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Observed:</span>{' '}
+            <span className="text-slate-700 dark:text-slate-300">{data.observed.toFixed(1)}% ({data.count})</span>
           </p>
           <p>
-            <span className="text-gray-600 font-medium">Expected:</span> {data.expected.toFixed(1)}%
+            <span className="text-slate-500 dark:text-slate-400 font-semibold">Expected:</span>{' '}
+            <span className="text-slate-700 dark:text-slate-300">{data.expected.toFixed(1)}%</span>
           </p>
           <p>
-            <span className={cn("font-medium", deviationColor)}>Deviation:</span> {data.deviation.toFixed(1)}%
+            <span className={cn('font-semibold', deviationColor)}>Deviation: {data.deviation.toFixed(1)}%</span>
           </p>
         </div>
         {data.deviation > 5 && (
-          <p className="text-xs text-red-600 mt-2 font-medium">⚠ Significant deviation detected</p>
+          <p className="text-xs text-red-400 mt-2 font-semibold">⚠ Significant deviation detected</p>
         )}
       </div>
     );
@@ -60,71 +62,72 @@ export function BenfordChart({ frequencies, className }: BenfordChartProps) {
   }));
 
   return (
-    <div className={cn('bg-white p-6 rounded-lg border border-gray-200', className)}>
+    <div className={cn('glass-panel border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6 shadow-md', className)}>
       <div className="flex items-center space-x-3 mb-6">
-        <BarChart3 className="w-6 h-6 text-blue-600" />
+        <div className="p-2 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15">
+          <BarChart3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Benford's Law Distribution Analysis
           </h3>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Comparing observed vs expected first digit frequencies
           </p>
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={380}>
         <BarChart
           data={chartData}
-          margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
+          margin={{ top: 20, right: 20, left: 10, bottom: 5 }}
         >
-          <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-          <XAxis 
-            dataKey="digit" 
-            tick={{ fontSize: 12 }}
-            axisLine={{ stroke: '#e5e7eb' }}
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+          <XAxis
+            dataKey="digit"
+            tick={{ fontSize: 11, fill: 'rgb(100,116,139)' }}
+            axisLine={{ stroke: 'rgba(148,163,184,0.3)' }}
+            tickLine={{ stroke: 'rgba(148,163,184,0.3)' }}
           />
-          <YAxis 
-            tick={{ fontSize: 12 }}
-            axisLine={{ stroke: '#e5e7eb' }}
-            label={{ value: 'Frequency (%)', angle: -90, position: 'insideLeft' }}
+          <YAxis
+            tick={{ fontSize: 11, fill: 'rgb(100,116,139)' }}
+            axisLine={{ stroke: 'rgba(148,163,184,0.3)' }}
+            tickLine={{ stroke: 'rgba(148,163,184,0.3)' }}
+            label={{ value: 'Frequency (%)', angle: -90, position: 'insideLeft', fill: 'rgb(100,116,139)', fontSize: 11 }}
           />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend />
-          <Bar 
-            dataKey="expected" 
-            fill="#9ca3af" 
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99,102,241,0.06)' }} />
+          <Legend
+            wrapperStyle={{ fontSize: '11px', color: 'rgb(100,116,139)' }}
+            iconType="square"
+            iconSize={10}
+          />
+          <Bar
+            dataKey="expected"
+            fill="rgba(148,163,184,0.5)"
             name="Expected (Benford's Law)"
-            radius={[2, 2, 0, 0]}
+            radius={[3, 3, 0, 0]}
           />
-          <Bar 
-            dataKey="observed" 
-            fill="#3b82f6" 
+          <Bar
+            dataKey="observed"
+            fill="#6366f1"
             name="Observed in Data"
-            radius={[2, 2, 0, 0]}
+            radius={[3, 3, 0, 0]}
           />
         </BarChart>
       </ResponsiveContainer>
 
-      <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+      <div className="mt-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200/60 dark:border-slate-800/50 pt-3">
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-gray-400 rounded-sm"></div>
+          <div className="flex items-center space-x-1.5">
+            <div className="w-3 h-3 rounded-sm bg-slate-400/50"></div>
             <span>Expected (Benford's Law)</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
-            <span>Observed in Data</span>
+          <div className="flex items-center space-x-1.5">
+            <div className="w-3 h-3 rounded-sm bg-indigo-500"></div>
+            <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Observed in Data</span>
           </div>
         </div>
-        <div className="text-right">
-          <p>Larger deviations may indicate data irregularities</p>
-        </div>
+        <span className="italic">Larger deviations may indicate data irregularities</span>
       </div>
     </div>
   );

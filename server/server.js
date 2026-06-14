@@ -8,6 +8,8 @@ const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const morgan = require('morgan');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
 
 // Import configurations
 const { connectDatabase } = require('./config/database');
@@ -19,6 +21,8 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const healthRoutes = require('./routes/health');
 const aiRoutes = require('./routes/ai');
+const billingRoutes = require('./routes/billing');
+const webhookRoutes = require('./routes/webhook');
 
 // Create Express app
 const app = express();
@@ -32,13 +36,13 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://js.stripe.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://js.stripe.com"],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
     },
   },
   crossOriginEmbedderPolicy: false
@@ -50,15 +54,18 @@ app.use(compression());
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
-    
+
     const allowedOrigins = [
-      process.env.FRONTEND_URL || 'http://localhost:5173',
+      process.env.FRONTEND_URL,
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
       'http://localhost:3000',
-      'http://localhost:5000'
-    ];
-    
+      'http://127.0.0.1:3000',
+      'http://localhost:5000',
+      'http://127.0.0.1:5000'
+    ].filter(Boolean);
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -75,8 +82,8 @@ app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // Limit each IP to 100 requests per windowMs
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
@@ -92,8 +99,8 @@ app.use('/api/', limiter);
 
 // Special rate limiting for auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 requests per windowMs for auth
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: {
     success: false,
     message: 'Too many authentication attempts, please try again later.'
@@ -106,9 +113,22 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
-// Body parsing middleware
+// ─────────────────────────────────────────────────────────────────────────────
+// STRIPE WEBHOOK — must be mounted BEFORE express.json()
+// Stripe requires the raw request body to verify the webhook signature.
+// If express.json() runs first, req.body is already parsed and signature
+// verification will fail with "No signatures found matching the expected
+// signature for payload".
+// ─────────────────────────────────────────────────────────────────────────────
+app.use('/api/stripe/webhook', webhookRoutes);
+
+// Body parsing middleware (AFTER webhook route)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Sanitize data against NoSQL query injection and XSS
+app.use(mongoSanitize());
+app.use(xss());
 
 // Session configuration
 app.use(session({
@@ -117,15 +137,15 @@ app.use(session({
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
-    touchAfter: 24 * 3600 // lazy session update
+    touchAfter: 24 * 3600
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 24 * 60 * 60 * 1000,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   },
-  name: 'expenseaudit.session' // Change default session name
+  name: 'expenseaudit.session'
 }));
 
 // Passport middleware
@@ -142,11 +162,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
 // API Routes
+// ─────────────────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/billing', billingRoutes);
 
 const errorHandler = require('./middleware/errorHandler');
 
@@ -167,17 +190,17 @@ app.use(errorHandler);
 // Graceful shutdown
 const gracefulShutdown = (signal) => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
-  
+
   server.close((err) => {
     if (err) {
       logger.error('Error during server close:', err);
       process.exit(1);
     }
-    
+
     logger.info('HTTP server closed');
     process.exit(0);
   });
-  
+
   // Force close after 30 seconds
   setTimeout(() => {
     logger.error('Forced shutdown after timeout');
@@ -206,26 +229,21 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    // Connect to database
     await connectDatabase();
-    
-    // Start HTTP server
+
     const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
     });
-    
-    // Set server timeout
-    server.timeout = 30000; // 30 seconds
-    
+
+    server.timeout = 30000;
     global.server = server;
-    
+
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
   }
 };
 
-// Only start server if this file is run directly
 if (require.main === module) {
   startServer();
 }

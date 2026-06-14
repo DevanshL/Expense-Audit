@@ -141,23 +141,23 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
   };
 
   return (
-    <div className={cn('bg-white rounded-lg border border-gray-200', className)}>
-      <div className="p-6 border-b border-gray-200">
+    <div className={cn('glass-panel border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden shadow-md', className)}>
+      <div className="p-6 border-b border-slate-200/60 dark:border-slate-800/50">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <Flag className="w-6 h-6 text-red-600" />
+            <Flag className="w-5 h-5 text-red-500 dark:text-red-400" />
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Flagged Transactions
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Transactions with suspicious patterns ({transactions.length} flagged)
               </p>
             </div>
           </div>
           <button
             onClick={handleExport}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             <Download className="w-4 h-4" />
             <span>Export CSV</span>
@@ -167,18 +167,18 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search by amount, vendor, or reason..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 text-sm transition-colors"
             />
           </div>
 
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-700">Risk Level:</span>
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Risk Level:</span>
             {RISK_LEVELS.map(risk => (
               <label key={risk} className="flex items-center space-x-1 text-sm">
                 <input
@@ -198,10 +198,10 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
 
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-800/50">
             <tr>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 onClick={() => handleSort('amount')}
               >
                 <div className="flex items-center space-x-1">
@@ -210,7 +210,7 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
                 </div>
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 onClick={() => handleSort('vendor')}
               >
                 <div className="flex items-center space-x-1">
@@ -219,7 +219,7 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
                 </div>
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 onClick={() => handleSort('firstDigit')}
               >
                 <div className="flex items-center space-x-1">
@@ -228,7 +228,7 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
                 </div>
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 onClick={() => handleSort('riskLevel')}
               >
                 <div className="flex items-center space-x-1">
@@ -236,52 +236,52 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
                   <SortIcon field="riskLevel" />
                 </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Reason
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/50">
             {paginatedTransactions.map((transaction, index) => (
               <tr 
                 key={`${transaction.index}-${index}`}
-                className="hover:bg-gray-50 transition-colors"
+                className="hover:bg-indigo-500/5 dark:hover:bg-indigo-500/5 transition-colors"
               >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                <td className="px-5 py-4 whitespace-nowrap">
+                  <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
                     ${transaction.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                <td className="px-5 py-4 whitespace-nowrap">
+                  <div className="text-sm text-slate-600 dark:text-slate-300">
                     {transaction.vendor || 'N/A'}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                <td className="px-5 py-4 whitespace-nowrap">
+                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                     {transaction.firstDigit}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-5 py-4 whitespace-nowrap">
                   <span className={cn(
-                    'inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize border',
+                    'inline-flex px-2.5 py-1 text-xs font-bold rounded-full capitalize border',
                     getRiskColor(transaction.riskLevel)
                   )}>
                     {transaction.riskLevel}
                   </span>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 max-w-xs">
+                <td className="px-5 py-4">
+                  <div className="text-xs text-slate-600 dark:text-slate-300 max-w-xs leading-relaxed">
                     {transaction.reason}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-5 py-4 whitespace-nowrap">
                   <button
                     onClick={() => onTransactionSelect?.(transaction)}
-                    className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 transition-colors"
+                    className="inline-flex items-center space-x-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors font-semibold"
                   >
                     <Eye className="w-4 h-4" />
                     <span className="text-xs">View</span>
@@ -293,25 +293,25 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
         </table>
 
         {paginatedTransactions.length === 0 && (
-          <div className="text-center py-8">
-            <Flag className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No transactions match your current filters</p>
+          <div className="text-center py-12">
+            <Flag className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">No transactions match your current filters</p>
           </div>
         )}
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+        <div className="px-6 py-4 border-t border-slate-200/60 dark:border-slate-800/50 flex items-center justify-between">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, sortedAndFilteredTransactions.length)} of{' '}
             {sortedAndFilteredTransactions.length} results
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5">
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               Previous
             </button>
@@ -323,10 +323,10 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
                     className={cn(
-                      'px-3 py-1 border rounded-md',
+                      'px-3 py-1 border rounded-lg text-xs font-semibold transition-colors',
                       pageNum === currentPage
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'border-gray-300 hover:bg-gray-50'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     )}
                   >
                     {pageNum}
@@ -335,14 +335,14 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
               })}
               {totalPages > 5 && (
                 <>
-                  <span className="px-2">...</span>
+                  <span className="px-1 text-slate-400">...</span>
                   <button
                     onClick={() => setCurrentPage(totalPages)}
                     className={cn(
-                      'px-3 py-1 border rounded-md',
+                      'px-3 py-1 border rounded-lg text-xs font-semibold transition-colors',
                       totalPages === currentPage
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'border-gray-300 hover:bg-gray-50'
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     )}
                   >
                     {totalPages}
@@ -353,7 +353,7 @@ export function TransactionsTable({ transactions, className, onTransactionSelect
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               Next
             </button>

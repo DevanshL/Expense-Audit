@@ -6,7 +6,6 @@ import { z } from 'zod';
 import { 
   Settings, 
   User, 
-  Key, 
   Shield, 
   Brain, 
   Eye, 
@@ -28,19 +27,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useUsageTracking } from '../hooks/useUsageTracking';
 import { useTheme } from '../hooks/useTheme';
 import { cn } from '../utils/cn';
-import { testAPIKey } from '../utils/aiModelManager';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
-export interface AIConfig {
-  preferredProvider: 'openai' | 'gemini' | 'anthropic' | 'azure';
-  models: {
-    openai: { model: string; apiKey?: string };
-    gemini: { model: string; apiKey?: string };
-    anthropic: { model: string; apiKey?: string };
-    azure: { model: string; apiKey?: string; endpoint?: string; deploymentName?: string };
-  };
-}
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -60,14 +48,6 @@ const passwordSchema = z.object({
   path: ["confirmPassword"],
 });
 
-const aiConfigSchema = z.object({
-  preferredProvider: z.enum(['openai', 'gemini', 'anthropic', 'azure']),
-  apiKey: z.string().min(1, 'API key is required'),
-  model: z.string().min(1, 'Model selection is required'),
-  azureEndpoint: z.string().optional(),
-  azureDeployment: z.string().optional(),
-});
-
 const preferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']),
   density: z.enum(['compact', 'comfortable']),
@@ -76,90 +56,20 @@ const preferencesSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
-type AIConfigFormData = z.infer<typeof aiConfigSchema>;
 type PreferencesFormData = z.infer<typeof preferencesSchema>;
 
-interface AIProvider {
-  id: string;
-  name: string;
-  description: string;
-  models: { id: string; name: string; description: string }[];
-  keyFormat: string;
-  icon: string;
-}
-
-const AI_PROVIDERS: AIProvider[] = [
-  {
-    id: 'openai',
-    name: 'OpenAI',
-    description: 'Latest GPT models with advanced reasoning',
-    models: [
-      { id: 'gpt-4o', name: 'GPT-4o', description: 'Latest and most capable model (Nov 2024)' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and cost-effective latest model' },
-      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Previous generation, reliable' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Legacy model, basic tasks' },
-    ],
-    keyFormat: 'sk-...',
-    icon: '🤖'
-  },
-  {
-    id: 'anthropic',
-    name: 'Anthropic',
-    description: 'Latest Claude models with advanced reasoning',
-    models: [
-      { id: 'claude-4-opus', name: 'Claude 4 Opus', description: 'Latest flagship model with enhanced capabilities (2025)' },
-      { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', description: 'Advanced balanced model (2025)' },
-      { id: 'claude-3.7-sonnet', name: 'Claude 3.7 Sonnet', description: 'Enhanced reasoning model (Dec 2024)' },
-      { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', description: 'Previous generation with enhanced reasoning' },
-      { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', description: 'Fast and efficient latest model' },
-      { id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Previous flagship for complex tasks' },
-    ],
-    keyFormat: 'sk-ant-...',
-    icon: '🎭'
-  },
-  {
-    id: 'gemini',
-    name: 'Google AI',
-    description: 'Latest Gemini models with advanced capabilities',
-    models: [
-      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: 'Latest production model with enhanced reasoning' },
-      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Fast latest generation model' },
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Experimental cutting-edge model' },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Production-ready with long context' },
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Fast processing, good for analysis' },
-    ],
-    keyFormat: 'AIza...',
-    icon: '🔷'
-  },
-  {
-    id: 'azure',
-    name: 'Azure OpenAI',
-    description: 'Enterprise OpenAI models through Microsoft Azure',
-    models: [
-      { id: 'gpt-4o', name: 'GPT-4o (Azure)', description: 'Latest model via Azure deployment' },
-      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo (Azure)', description: 'Azure-hosted GPT-4 Turbo' },
-      { id: 'gpt-35-turbo', name: 'GPT-3.5 Turbo (Azure)', description: 'Azure-hosted GPT-3.5' },
-    ],
-    keyFormat: 'Azure API Key',
-    icon: '☁️'
-  }
-];
-
 export function SettingsPage() {
-  const { user, updateProfile, updatePassword, updateAIConfig, checkPasswordStatus, logout } = useAuth();
+  const { user, updateProfile, updatePassword, checkPasswordStatus, logout } = useAuth();
   const { usageData, loading: usageLoading, error: usageError, fetchUsageStats } = useUsageTracking();
-  const { theme, density, language, updatePreferences: updateThemePreferences } = useTheme();
+  const { theme, density, updatePreferences: updateThemePreferences } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
   const [passwordStatus, setPasswordStatus] = useState<{ hasPassword: boolean; isOAuthUser: boolean; authMethod: string } | null>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [apiTestResult, setApiTestResult] = useState<{success: boolean; message: string; responseTime?: number} | null>(null);
-  const [isTestingAPI, setIsTestingAPI] = useState(false);
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -197,52 +107,17 @@ export function SettingsPage() {
     }
   }, [passwordStatus, passwordForm]);
 
-  const aiConfigForm = useForm<AIConfigFormData>({
-    resolver: zodResolver(aiConfigSchema),
-    defaultValues: {
-      preferredProvider: user?.aiConfig?.preferredProvider || 'openai',
-      apiKey: '', // Never pre-populate API keys for security
-      model: user?.aiConfig?.models?.[user?.aiConfig?.preferredProvider || 'openai']?.model || 'gpt-4o-mini',
-    },
-  });
-
-  // Update AI config form when user data changes
-  useEffect(() => {
-    if (user?.aiConfig) {
-      const currentProvider = user.aiConfig.preferredProvider || 'openai';
-      aiConfigForm.setValue('preferredProvider', currentProvider);
-      aiConfigForm.setValue('model', user.aiConfig.models?.[currentProvider]?.model || 'gpt-4o-mini');
-      // Don't pre-populate API key for security reasons
-      aiConfigForm.setValue('apiKey', '');
-    }
-  }, [user?.aiConfig, aiConfigForm]);
-
   const preferencesForm = useForm<PreferencesFormData>({
     resolver: zodResolver(preferencesSchema),
     defaultValues: {
-      theme: theme || 'light',
+      theme: theme || 'dark',
       density: density || 'comfortable',
-      language: language || 'en',
+      language: 'en',
     },
   });
 
-  const selectedProvider = AI_PROVIDERS.find(p => p.id === aiConfigForm.watch('preferredProvider'));
-
-  // Update form when user's AI config changes
-  useEffect(() => {
-    if (user?.aiConfig) {
-      aiConfigForm.setValue('preferredProvider', user.aiConfig.preferredProvider);
-      const currentModel = user.aiConfig.models?.[user.aiConfig.preferredProvider]?.model;
-      if (currentModel) {
-        aiConfigForm.setValue('model', currentModel);
-      }
-    }
-  }, [user?.aiConfig, aiConfigForm]);
-
-  // Fetch usage statistics when component mounts or user changes
   useEffect(() => {
     if (user) {
-      console.log('SettingsPage: Calling fetchUsageStats for user:', user.email);
       fetchUsageStats();
     }
   }, [user, fetchUsageStats]);
@@ -264,11 +139,11 @@ export function SettingsPage() {
   // Update form values when theme context changes
   useEffect(() => {
     preferencesForm.reset({
-      theme: theme || 'light',
+      theme: theme || 'dark',
       density: density || 'comfortable',
-      language: language || 'en',
+      language: 'en',
     });
-  }, [theme, density, language, preferencesForm]);
+  }, [theme, density, preferencesForm]);
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -284,27 +159,7 @@ export function SettingsPage() {
     setSuccessMessage(null);
   };
 
-  const handleTestAPIKey = async (provider: string, apiKey: string, azureConfig?: { endpoint: string; deploymentName: string }) => {
-    if (!apiKey.trim()) {
-      setApiTestResult({ success: false, message: 'Please enter an API key to test' });
-      return;
-    }
 
-    setIsTestingAPI(true);
-    setApiTestResult(null);
-
-    try {
-      const result = await testAPIKey(provider as 'openai' | 'anthropic' | 'gemini' | 'azure', apiKey, azureConfig);
-      setApiTestResult(result);
-    } catch (error) {
-      setApiTestResult({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to test API key'
-      });
-    } finally {
-      setIsTestingAPI(false);
-    }
-  };
 
   const onProfileSubmit = async (data: ProfileFormData) => {
     setIsLoading(true);
@@ -346,74 +201,6 @@ export function SettingsPage() {
     }
   };
 
-  const onAIConfigSubmit = async (data: AIConfigFormData) => {
-    setIsLoading(true);
-    try {
-      // First, validate the API key before saving
-      if (data.apiKey && data.apiKey.trim()) {
-        console.log('Testing API key before saving...');
-        
-        // For Azure, prepare the config object
-        const azureConfig = data.preferredProvider === 'azure' ? {
-          endpoint: data.azureEndpoint || '',
-          deploymentName: data.azureDeployment || ''
-        } : undefined;
-        
-        const testResult = await testAPIKey(data.preferredProvider, data.apiKey, azureConfig);
-        
-        if (!testResult.success) {
-          showError(`API Key validation failed: ${testResult.message}`);
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('API key validation successful');
-      }
-
-      // Transform the form data to match the new backend API structure
-      const configUpdate: Partial<AIConfig> = {
-        preferredProvider: data.preferredProvider,
-        models: {
-          [data.preferredProvider]: {
-            model: data.model,
-            apiKey: data.apiKey,
-            ...(data.preferredProvider === 'azure' && {
-              endpoint: data.azureEndpoint,
-              deploymentName: data.azureDeployment
-            })
-          }
-        } as AIConfig['models']
-      };
-      
-      const success = await updateAIConfig(configUpdate);
-      if (success) {
-        showSuccess('AI configuration saved successfully');
-        aiConfigForm.setValue('apiKey', ''); // Clear API key field after save
-        setApiTestResult(null); // Clear test result
-      } else {
-        showError('Failed to save AI configuration');
-      }
-    } catch (error) {
-      console.error('Error in AI config submit:', error);
-      showError('An error occurred while saving AI configuration');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const onPreferencesSubmit = async (data: PreferencesFormData) => {
-    setIsLoading(true);
-    try {
-      // Update theme context (which handles both local and backend storage)
-      await updateThemePreferences(data);
-      showSuccess('Preferences updated successfully');
-    } catch (error) {
-      console.error('Failed to update preferences:', error);
-      showError('Failed to update preferences');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Export handlers
   const handleExportProfile = async () => {
@@ -584,7 +371,6 @@ export function SettingsPage() {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'security', label: 'Security', icon: Shield },
-    { id: 'ai-config', label: 'AI Configuration', icon: Brain },
     { id: 'usage', label: 'Usage Stats', icon: BarChart3 },
     { id: 'preferences', label: 'Preferences', icon: Settings },
     { id: 'export', label: 'Export & Data', icon: Database },
@@ -595,12 +381,12 @@ export function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <Settings className="w-8 h-8 text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
         </div>
 
         {/* Success/Error Messages */}
@@ -618,9 +404,9 @@ export function SettingsPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
           {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="flex space-x-8 px-6">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -648,7 +434,7 @@ export function SettingsPage() {
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Profile Information</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Profile Information</h3>
                   <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -724,10 +510,10 @@ export function SettingsPage() {
               <div className="space-y-6">
                 <div>
                   <div className="mb-6">
-                    <h3 className="text-lg font-medium text-gray-900">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                       {passwordStatus?.hasPassword ? 'Change Password' : 'Set Password'}
                     </h3>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                       {passwordStatus?.hasPassword 
                         ? 'Update your existing password for enhanced security' 
                         : passwordStatus?.isOAuthUser 
@@ -779,9 +565,9 @@ export function SettingsPage() {
                             className="absolute inset-y-0 right-0 pr-3 flex items-center"
                           >
                             {showCurrentPassword ? (
-                              <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                              <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-300" />
                             ) : (
-                              <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                              <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-300" />
                             )}
                           </button>
                         </div>
@@ -811,9 +597,9 @@ export function SettingsPage() {
                           className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         >
                           {showNewPassword ? (
-                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-300" />
                           ) : (
-                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-300" />
                           )}
                         </button>
                       </div>
@@ -842,9 +628,9 @@ export function SettingsPage() {
                           className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         >
                           {showConfirmPassword ? (
-                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-300" />
                           ) : (
-                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-300" />
                           )}
                         </button>
                       </div>
@@ -870,7 +656,7 @@ export function SettingsPage() {
                 </div>
 
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Account Actions</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Account Actions</h3>
                   <div className="space-y-4">
                     <button
                       onClick={logout}
@@ -897,260 +683,13 @@ export function SettingsPage() {
               </div>
             )}
 
-            {activeTab === 'ai-config' && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">AI Provider Configuration</h3>
-                  <p className="text-gray-600 mb-6">
-                    Configure your preferred AI provider and API credentials for advanced financial analysis.
-                  </p>
-                  
-                  <form onSubmit={aiConfigForm.handleSubmit(onAIConfigSubmit)} className="space-y-6">
-                    {/* Provider Selection */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        AI Provider
-                      </label>
-                      <div className="grid gap-4">
-                        {AI_PROVIDERS.map((provider) => (
-                          <label
-                            key={provider.id}
-                            className={cn(
-                              "relative flex cursor-pointer rounded-lg border p-4 focus:outline-none",
-                              aiConfigForm.watch('preferredProvider') === provider.id
-                                ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50"
-                                : "border-gray-300 hover:border-gray-400"
-                            )}
-                          >
-                            <input
-                              {...aiConfigForm.register('preferredProvider')}
-                              type="radio"
-                              value={provider.id}
-                              className="sr-only"
-                            />
-                            <div className="flex items-center">
-                              <span className="text-2xl mr-3">{provider.icon}</span>
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                  <h4 className="text-lg font-medium text-gray-900">{provider.name}</h4>
-                                  {aiConfigForm.watch('preferredProvider') === provider.id && (
-                                    <Check className="w-5 h-5 text-blue-600" />
-                                  )}
-                                </div>
-                                <p className="text-sm text-gray-500">{provider.description}</p>
-                              </div>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                      {aiConfigForm.formState.errors.preferredProvider && (
-                        <p className="mt-1 text-sm text-red-600">{aiConfigForm.formState.errors.preferredProvider.message}</p>
-                      )}
-                    </div>
 
-                    {/* Model Selection */}
-                    {selectedProvider && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Model
-                        </label>
-                        <select
-                          {...aiConfigForm.register('model')}
-                          className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          {selectedProvider.models.map((model) => (
-                            <option key={model.id} value={model.id}>
-                              {model.name} - {model.description}
-                            </option>
-                          ))}
-                        </select>
-                        {aiConfigForm.formState.errors.model && (
-                          <p className="mt-1 text-sm text-red-600">{aiConfigForm.formState.errors.model.message}</p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* API Key */}
-                    {selectedProvider && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          API Key
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Key className="h-5 w-5 text-gray-400" />
-                          </div>
-                          <input
-                            {...aiConfigForm.register('apiKey')}
-                            type={showApiKey ? 'text' : 'password'}
-                            className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder={`Enter your ${selectedProvider.name} API key (${selectedProvider.keyFormat})`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowApiKey(!showApiKey)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                          >
-                            {showApiKey ? (
-                              <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                            ) : (
-                              <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                            )}
-                          </button>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Your API key is encrypted and stored securely. It will only be used for analysis requests.
-                        </p>
-                        
-                        {/* API Test Section */}
-                        {aiConfigForm.watch('apiKey') && (
-                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-700">Test your API key:</span>
-                              <button
-                                type="button"
-                                onClick={() => handleTestAPIKey(
-                                  selectedProvider.id,
-                                  aiConfigForm.watch('apiKey'),
-                                  selectedProvider.id === 'azure' ? {
-                                    endpoint: aiConfigForm.watch('azureEndpoint') || '',
-                                    deploymentName: aiConfigForm.watch('azureDeployment') || ''
-                                  } : undefined
-                                )}
-                                disabled={isTestingAPI}
-                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                              >
-                                {isTestingAPI ? 'Testing...' : 'Test API Key'}
-                              </button>
-                            </div>
-                            {apiTestResult && (
-                              <div className={cn(
-                                "mt-2 p-2 rounded text-sm",
-                                apiTestResult.success 
-                                  ? "bg-green-100 text-green-800 border border-green-200"
-                                  : "bg-red-100 text-red-800 border border-red-200"
-                              )}>
-                                <div className="flex items-center space-x-2">
-                                  {apiTestResult.success ? (
-                                    <Check className="w-4 h-4" />
-                                  ) : (
-                                    <AlertCircle className="w-4 h-4" />
-                                  )}
-                                  <span>{apiTestResult.message}</span>
-                                  {apiTestResult.responseTime && (
-                                    <span className="text-xs">({apiTestResult.responseTime}ms)</span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        
-                        {aiConfigForm.formState.errors.apiKey && (
-                          <p className="mt-1 text-sm text-red-600">{aiConfigForm.formState.errors.apiKey.message}</p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Azure Configuration Fields */}
-                    {selectedProvider?.id === 'azure' && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Azure Endpoint
-                          </label>
-                          <input
-                            {...aiConfigForm.register('azureEndpoint')}
-                            type="text"
-                            className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="https://your-resource.openai.azure.com"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Deployment Name
-                          </label>
-                          <input
-                            {...aiConfigForm.register('azureDeployment')}
-                            type="text"
-                            className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="your-deployment-name"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="border-t border-gray-200 pt-6">
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Save className="w-4 h-4" />
-                        <span>{isLoading ? 'Saving...' : 'Save Configuration'}</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                {/* Current Configuration Status */}
-                {user?.aiConfig?.preferredProvider && (
-                  <div className="border-t pt-6">
-                    <h4 className="text-md font-medium text-gray-900 mb-3">Current Configuration</h4>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {AI_PROVIDERS.find(p => p.id === user.aiConfig?.preferredProvider)?.name || 'Unknown Provider'}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Model: {user.aiConfig.models?.[user.aiConfig.preferredProvider]?.model || 'Not configured'}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            API Key: {user.aiConfig.models?.[user.aiConfig.preferredProvider]?.hasApiKey ? (
-                              <span className="text-green-600 font-medium">Configured ✓</span>
-                            ) : (
-                              <span className="text-yellow-600 font-medium">Not configured</span>
-                            )}
-                          </p>
-                          {user.aiConfig.preferredProvider === 'azure' && (
-                            <>
-                              <p className="text-sm text-gray-600">
-                                Endpoint: {user.aiConfig.models?.azure?.hasEndpoint ? (
-                                  <span className="text-green-600 font-medium">Configured ✓</span>
-                                ) : (
-                                  <span className="text-yellow-600 font-medium">Not configured</span>
-                                )}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Deployment: {user.aiConfig.models?.azure?.model ? (
-                                  <span className="text-green-600 font-medium">{user.aiConfig.models.azure.model} ✓</span>
-                                ) : (
-                                  <span className="text-yellow-600 font-medium">Not configured</span>
-                                )}
-                              </p>
-                            </>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {user.aiConfig.models?.[user.aiConfig.preferredProvider]?.hasApiKey ? (
-                            <Check className="w-6 h-6 text-green-500" />
-                          ) : (
-                            <AlertCircle className="w-6 h-6 text-yellow-500" />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Usage Stats Tab */}
             {activeTab === 'usage' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Usage Statistics</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Usage Statistics</h2>
                   <button
                     onClick={fetchUsageStats}
                     disabled={usageLoading}
@@ -1247,120 +786,128 @@ export function SettingsPage() {
             {activeTab === 'preferences' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">UI Preferences</h3>
-                  <p className="text-gray-600 mb-6">
-                    Customize your interface to suit your preferences.
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">UI Preferences</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                    Changes apply instantly. Your preferences are saved automatically.
                   </p>
-                  
-                  <form onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)} className="space-y-6">
-                    {/* Theme Selection */}
+
+                  <div className="space-y-8">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">
                         Theme
                       </label>
-                      <div className="grid grid-cols-3 gap-4">
-                        {(['light', 'dark', 'system'] as const).map((theme) => (
-                          <label
-                            key={theme}
-                            className={cn(
-                              "relative flex cursor-pointer rounded-lg border p-4 focus:outline-none",
-                              preferencesForm.watch('theme') === theme
-                                ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50"
-                                : "border-gray-300 hover:border-gray-400"
-                            )}
-                          >
-                            <input
-                              {...preferencesForm.register('theme')}
-                              type="radio"
-                              value={theme}
-                              className="sr-only"
-                            />
-                            <div className="flex items-center justify-center w-full">
-                              <div className="text-center">
-                                <div className="text-2xl mb-2">
-                                  {theme === 'light' && '☀️'}
-                                  {theme === 'dark' && '🌙'}
-                                  {theme === 'system' && '🖥️'}
+                      <div className="grid grid-cols-3 gap-3">
+                        {([
+                          { id: 'light' as const, label: 'Light', icon: '☀️', desc: 'Bright & clean' },
+                          { id: 'dark' as const, label: 'Dark', icon: '🌙', desc: 'Easy on eyes' },
+                          { id: 'system' as const, label: 'System', icon: '🖥️', desc: 'Follows OS' },
+                        ]).map((option) => {
+                          const isSelected = theme === option.id;
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={async () => {
+                                await updateThemePreferences({ theme: option.id });
+                                preferencesForm.setValue('theme', option.id);
+                              }}
+                              className={cn(
+                                'relative flex flex-col items-center justify-center rounded-xl border-2 p-5 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50',
+                                isSelected
+                                  ? 'border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/15 shadow-lg shadow-indigo-500/10'
+                                  : 'border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-500/5'
+                              )}
+                            >
+                              {isSelected && (
+                                <div className="absolute top-2 right-2">
+                                  <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-white" />
+                                  </div>
                                 </div>
-                                <h4 className="text-sm font-medium text-gray-900 capitalize">{theme}</h4>
-                                {preferencesForm.watch('theme') === theme && (
-                                  <Check className="w-4 h-4 text-blue-600 mx-auto mt-1" />
-                                )}
-                              </div>
-                            </div>
-                          </label>
-                        ))}
+                              )}
+                              <span className="text-2xl mb-2">{option.icon}</span>
+                              <span className={cn(
+                                'text-sm font-bold',
+                                isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'
+                              )}>{option.label}</span>
+                              <span className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{option.desc}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
                     {/* Interface Density */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">
                         Interface Density
                       </label>
-                      <div className="grid grid-cols-2 gap-4">
-                        {(['compact', 'comfortable'] as const).map((density) => (
-                          <label
-                            key={density}
-                            className={cn(
-                              "relative flex cursor-pointer rounded-lg border p-4 focus:outline-none",
-                              preferencesForm.watch('density') === density
-                                ? "border-blue-600 ring-2 ring-blue-600 bg-blue-50"
-                                : "border-gray-300 hover:border-gray-400"
-                            )}
-                          >
-                            <input
-                              {...preferencesForm.register('density')}
-                              type="radio"
-                              value={density}
-                              className="sr-only"
-                            />
-                            <div className="flex items-center justify-center w-full">
-                              <div className="text-center">
-                                <div className="text-lg mb-1">
-                                  {density === 'compact' && '📱'}
-                                  {density === 'comfortable' && '🖥️'}
+                      <div className="grid grid-cols-2 gap-3">
+                        {([
+                          { id: 'compact' as const, label: 'Compact', icon: '▤', desc: 'More content in less space' },
+                          { id: 'comfortable' as const, label: 'Comfortable', icon: '▣', desc: 'Spacious and easy to read' },
+                        ]).map((option) => {
+                          const isSelected = density === option.id;
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={async () => {
+                                await updateThemePreferences({ density: option.id });
+                                preferencesForm.setValue('density', option.id);
+                              }}
+                              className={cn(
+                                'relative flex flex-col items-center justify-center rounded-xl border-2 p-5 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50',
+                                isSelected
+                                  ? 'border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/15 shadow-lg shadow-indigo-500/10'
+                                  : 'border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-500/5'
+                              )}
+                            >
+                              {isSelected && (
+                                <div className="absolute top-2 right-2">
+                                  <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-white" />
+                                  </div>
                                 </div>
-                                <h4 className="text-sm font-medium text-gray-900 capitalize">{density}</h4>
-                                <p className="text-xs text-gray-500">
-                                  {density === 'compact' ? 'More content in less space' : 'Spacious and easy to read'}
-                                </p>
-                                {preferencesForm.watch('density') === density && (
-                                  <Check className="w-4 h-4 text-blue-600 mx-auto mt-1" />
-                                )}
-                              </div>
-                            </div>
-                          </label>
-                        ))}
+                              )}
+                              <span className="text-xl mb-2 font-mono text-slate-500 dark:text-slate-400">{option.icon}</span>
+                              <span className={cn(
+                                'text-sm font-bold',
+                                isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'
+                              )}>{option.label}</span>
+                              <span className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 text-center">{option.desc}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Language Selection */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Language
-                      </label>
-                      <select 
-                        {...preferencesForm.register('language')}
-                        className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        title="Select language preference"
-                      >
-                        <option value="en">English</option>
-                        <option value="hi">हिन्दी (Hindi)</option>
-                        <option value="es">Español (Spanish)</option>
-                        <option value="fr">Français (French)</option>
-                      </select>
+                    {/* Language — Coming Soon */}
+                    <div className="rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 p-5">
+                      <div className="flex items-start space-x-3">
+                        <div className="p-2 rounded-lg bg-slate-200/60 dark:bg-slate-700/60 flex-shrink-0 mt-0.5">
+                          <span className="text-base">🌐</span>
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Multi-language Support</span>
+                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">Coming Soon</span>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            Support for Hindi, Spanish, French and more languages is planned for a future release. The app currently runs in English only.
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>{isLoading ? 'Saving...' : 'Save Preferences'}</span>
-                    </button>
-                  </form>
+                    {/* Live status indicator */}
+                    <div className="flex items-center space-x-2 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 dark:bg-emerald-950/20 dark:border-emerald-500/15">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></div>
+                      <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                        Preferences apply instantly and are saved to your account.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1369,8 +916,8 @@ export function SettingsPage() {
             {activeTab === 'export' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Export & Data Management</h3>
-                  <p className="text-gray-600 mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Export & Data Management</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
                     Download your data or manage your account information.
                   </p>
                   
@@ -1384,28 +931,28 @@ export function SettingsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <button 
                           onClick={handleExportProfile}
-                          className="flex items-center justify-center space-x-2 p-4 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-gray-800 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
                         >
                           <Database className="w-5 h-5 text-blue-600" />
                           <span className="text-blue-700 font-medium">Export Profile Data (.json)</span>
                         </button>
                         <button 
                           onClick={handleExportAISummaries}
-                          className="flex items-center justify-center space-x-2 p-4 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-gray-800 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
                         >
                           <FileText className="w-5 h-5 text-blue-600" />
                           <span className="text-blue-700 font-medium">Export AI Summaries (.json)</span>
                         </button>
                         <button 
                           onClick={handleExportActivity}
-                          className="flex items-center justify-center space-x-2 p-4 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-gray-800 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
                         >
                           <BarChart3 className="w-5 h-5 text-blue-600" />
                           <span className="text-blue-700 font-medium">Export Reports (.csv)</span>
                         </button>
                         <button 
                           onClick={handleExportActivity}
-                          className="flex items-center justify-center space-x-2 p-4 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-gray-800 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
                         >
                           <Activity className="w-5 h-5 text-blue-600" />
                           <span className="text-blue-700 font-medium">Export Activity Log (.json)</span>
@@ -1417,16 +964,16 @@ export function SettingsPage() {
                     </div>
 
                     {/* Data Management */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                      <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
                         <Shield className="w-5 h-5 mr-2" />
                         Data Management
                       </h4>
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-gray-900">Clear AI Summary Cache</p>
-                            <p className="text-sm text-gray-600">Remove locally cached AI analysis results</p>
+                            <p className="font-medium text-gray-900 dark:text-white">Clear AI Summary Cache</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">Remove locally cached AI analysis results</p>
                           </div>
                           <button 
                             onClick={handleClearCache}
@@ -1437,8 +984,8 @@ export function SettingsPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-gray-900">Download Account Data</p>
-                            <p className="text-sm text-gray-600">Get a complete backup of your account information</p>
+                            <p className="font-medium text-gray-900 dark:text-white">Download Account Data</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">Get a complete backup of your account information</p>
                           </div>
                           <button 
                             onClick={handleExportProfile}
@@ -1490,8 +1037,8 @@ export function SettingsPage() {
 
             {/* User Management Tab (Admin Only) */}
             {activeTab === 'users' && user?.role === 'admin' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">User Management</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">User Management</h2>
                 
                 <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
                   <div className="flex items-center space-x-2">
@@ -1506,15 +1053,15 @@ export function SettingsPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                      <Users className="w-5 h-5 text-gray-600" />
+                      <Users className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                       <span className="text-gray-700">View All Users</span>
                     </button>
                     <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors">
-                      <User className="w-5 h-5 text-gray-600" />
+                      <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                       <span className="text-gray-700">Add New User</span>
                     </button>
                     <button className="flex items-center justify-center space-x-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors">
-                      <Shield className="w-5 h-5 text-gray-600" />
+                      <Shield className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                       <span className="text-gray-700">Manage Roles</span>
                     </button>
                   </div>
@@ -1524,8 +1071,8 @@ export function SettingsPage() {
 
             {/* System Stats Tab (Admin Only) */}
             {activeTab === 'system' && user?.role === 'admin' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">System Statistics</h2>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">System Statistics</h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <div className="bg-indigo-50 p-4 rounded-lg">
@@ -1563,23 +1110,23 @@ export function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-medium text-gray-900 mb-3">Recent Activity (Last 24h)</h3>
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-3">Recent Activity (Last 24h)</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">New user registrations</span>
+                      <span className="text-gray-600 dark:text-gray-300">New user registrations</span>
                       <span className="font-medium">{user?.role === 'admin' ? 3 : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Reports generated</span>
+                      <span className="text-gray-600 dark:text-gray-300">Reports generated</span>
                       <span className="font-medium">{user?.role === 'admin' ? 12 : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Active sessions</span>
+                      <span className="text-gray-600 dark:text-gray-300">Active sessions</span>
                       <span className="font-medium">{user?.role === 'admin' ? 8 : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">AI summaries generated</span>
+                      <span className="text-gray-600 dark:text-gray-300">AI summaries generated</span>
                       <span className="font-medium">{user?.role === 'admin' ? 24 : 'N/A'}</span>
                     </div>
                   </div>

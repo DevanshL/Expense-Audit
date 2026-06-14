@@ -15,11 +15,11 @@ interface HeatmapCellProps {
 
 function HeatmapCell({ value, vendor, digit }: HeatmapCellProps) {
   const getCellColor = (deviation: number) => {
-    if (deviation > 5) return 'bg-red-500 text-white';
-    if (deviation > 2) return 'bg-red-200 text-red-800';
-    if (deviation > -2) return 'bg-gray-100 text-gray-700';
-    if (deviation > -5) return 'bg-blue-200 text-blue-800';
-    return 'bg-blue-500 text-white';
+    if (deviation > 5) return 'bg-red-500 dark:bg-red-600 text-white font-bold';
+    if (deviation > 2) return 'bg-red-200 dark:bg-red-900/60 text-red-800 dark:text-red-300 font-semibold';
+    if (deviation > -2) return 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400';
+    if (deviation > -5) return 'bg-blue-200 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 font-semibold';
+    return 'bg-blue-500 dark:bg-blue-600 text-white font-bold';
   };
 
   return (
@@ -43,14 +43,14 @@ export function DeviationHeatmap({ vendors, className }: DeviationHeatmapProps) 
 
   if (topVendors.length === 0) {
     return (
-      <div className={cn('bg-white p-6 rounded-lg border border-gray-200', className)}>
+      <div className={cn('glass-panel border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6 shadow-md', className)}>
         <div className="flex items-center space-x-3 mb-4">
-          <TrendingUp className="w-6 h-6 text-purple-600" />
+          <div className="p-2 rounded-xl bg-purple-500/10 dark:bg-purple-500/15">
+            <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Deviation Heatmap
-            </h3>
-            <p className="text-sm text-gray-600">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Deviation Heatmap</h3>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
               No vendor data available for heatmap visualization
             </p>
           </div>
@@ -79,14 +79,16 @@ export function DeviationHeatmap({ vendors, className }: DeviationHeatmapProps) 
   });
 
   return (
-    <div className={cn('bg-white p-6 rounded-lg border border-gray-200', className)}>
+    <div className={cn('glass-panel border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6 shadow-md', className)}>
       <div className="flex items-center space-x-3 mb-6">
-        <TrendingUp className="w-6 h-6 text-purple-600" />
+        <div className="p-2 rounded-xl bg-purple-500/10 dark:bg-purple-500/15">
+          <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+        </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Vendor-Digit Deviation Heatmap
           </h3>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Deviation from Benford's Law by vendor and digit (top 10 vendors by volume)
           </p>
         </div>
@@ -98,9 +100,9 @@ export function DeviationHeatmap({ vendors, className }: DeviationHeatmapProps) 
           <div className="inline-block min-w-full">
             {/* Header */}
             <div className="grid grid-cols-10 gap-1 mb-2">
-              <div className="text-xs font-medium text-gray-500 p-2"></div>
+              <div className="text-xs font-medium text-slate-400 p-2"></div>
               {digits.map(digit => (
-                <div key={digit} className="text-xs font-medium text-gray-700 text-center p-2">
+                <div key={digit} className="text-xs font-bold text-slate-500 dark:text-slate-400 text-center p-2">
                   Digit {digit}
                 </div>
               ))}
@@ -109,7 +111,7 @@ export function DeviationHeatmap({ vendors, className }: DeviationHeatmapProps) 
             {/* Rows */}
             {topVendors.map((vendor, vendorIndex) => (
               <div key={vendor.vendor} className="grid grid-cols-10 gap-1 mb-1">
-                <div className="text-xs text-gray-700 p-2 font-medium text-right pr-4 flex items-center justify-end">
+                <div className="text-xs text-slate-600 dark:text-slate-300 p-2 font-semibold text-right pr-4 flex items-center justify-end">
                   <span className="truncate max-w-32" title={vendor.vendor}>
                     {vendor.vendor.length > 15 ? vendor.vendor.substring(0, 15) + '...' : vendor.vendor}
                   </span>
@@ -128,32 +130,30 @@ export function DeviationHeatmap({ vendors, className }: DeviationHeatmapProps) 
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-between text-xs text-gray-500 border-t pt-4">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200/60 dark:border-slate-800/50 pt-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center space-x-1.5">
               <div className="w-4 h-4 bg-blue-500 rounded-sm"></div>
               <span>Much lower (-5%+)</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-blue-200 rounded-sm"></div>
+            <div className="flex items-center space-x-1.5">
+              <div className="w-4 h-4 bg-blue-200 dark:bg-blue-900/60 rounded-sm"></div>
               <span>Lower (-2% to -5%)</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-gray-100 border border-gray-300 rounded-sm"></div>
+            <div className="flex items-center space-x-1.5">
+              <div className="w-4 h-4 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm"></div>
               <span>Near expected (-2% to +2%)</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-red-200 rounded-sm"></div>
+            <div className="flex items-center space-x-1.5">
+              <div className="w-4 h-4 bg-red-200 dark:bg-red-900/60 rounded-sm"></div>
               <span>Higher (+2% to +5%)</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1.5">
               <div className="w-4 h-4 bg-red-500 rounded-sm"></div>
               <span>Much higher (+5%+)</span>
             </div>
           </div>
-          <div className="text-right">
-            <p>Red areas may indicate suspicious patterns</p>
-          </div>
+          <span className="italic">Red areas may indicate suspicious patterns</span>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { TrendingUp, Shield, AlertTriangle, XCircle, BarChart3, Users, Flag } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import type { BenfordResult } from '../../types';
+import { Interactive3DTiltCard } from '../ui/Interactive3DTiltCard';
 
 interface RiskSummaryProps {
   result: BenfordResult;
@@ -21,41 +22,45 @@ interface SummaryCardProps {
 
 function SummaryCard({ title, value, subtitle, icon: Icon, status, trend }: SummaryCardProps) {
   const statusStyles = {
-    good: 'border-green-200 bg-green-50',
-    warning: 'border-amber-200 bg-amber-50',
-    danger: 'border-red-200 bg-red-50',
+    good: 'border-green-500/20 dark:border-green-500/10 bg-green-500/10 dark:bg-green-950/20 shadow-lg shadow-green-500/5',
+    warning: 'border-amber-500/20 dark:border-amber-500/10 bg-amber-500/10 dark:bg-amber-950/20 shadow-lg shadow-amber-500/5',
+    danger: 'border-red-500/20 dark:border-red-500/10 bg-red-500/10 dark:bg-red-950/20 shadow-lg shadow-red-500/5',
   };
 
   const iconStyles = {
-    good: 'text-green-600',
-    warning: 'text-amber-600',
-    danger: 'text-red-600',
+    good: 'text-green-600 dark:text-green-400',
+    warning: 'text-amber-600 dark:text-amber-400',
+    danger: 'text-red-600 dark:text-red-400',
   };
 
   const textStyles = {
-    good: 'text-green-900',
-    warning: 'text-amber-900',
-    danger: 'text-red-900',
+    good: 'text-green-900 dark:text-green-300',
+    warning: 'text-amber-900 dark:text-amber-300',
+    danger: 'text-red-900 dark:text-red-300',
   };
 
   return (
-    <div className={cn('border rounded-lg p-6 transition-all hover:shadow-md', statusStyles[status])}>
-      <div className="flex items-center justify-between mb-4">
-        <Icon className={cn('w-8 h-8', iconStyles[status])} />
-        {trend && (
-          <div className={cn('flex items-center space-x-1 text-xs', textStyles[status])}>
-            <TrendingUp className={cn('w-3 h-3', trend.direction === 'down' && 'rotate-180')} />
-            <span>{trend.label}</span>
+    <Interactive3DTiltCard maxTilt={8} className="w-full">
+      <div className={cn('border rounded-2xl p-6 transition-all duration-300 backdrop-blur-md h-full', statusStyles[status])}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="bg-white/40 dark:bg-slate-900/30 rounded-xl p-2.5 shadow-sm border border-white/20 dark:border-slate-800/10">
+            <Icon className={cn('w-7 h-7', iconStyles[status])} />
           </div>
-        )}
+          {trend && (
+            <div className={cn('flex items-center space-x-1 text-xs font-bold px-2 py-0.5 rounded-full bg-white/30 dark:bg-slate-900/20', textStyles[status])}>
+              <TrendingUp className={cn('w-3 h-3', trend.direction === 'down' && 'rotate-180')} />
+              <span>{trend.label}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className={cn('space-y-1.5', textStyles[status])}>
+          <h3 className="font-bold text-xs uppercase tracking-wider opacity-75">{title}</h3>
+          <p className="text-3xl font-black tracking-tight">{value}</p>
+          <p className="text-sm font-semibold opacity-90">{subtitle}</p>
+        </div>
       </div>
-      
-      <div className={cn('space-y-2', textStyles[status])}>
-        <h3 className="font-semibold text-sm uppercase tracking-wide">{title}</h3>
-        <p className="text-3xl font-bold">{value}</p>
-        <p className="text-sm opacity-80">{subtitle}</p>
-      </div>
-    </div>
+    </Interactive3DTiltCard>
   );
 }
 
@@ -87,14 +92,14 @@ export function RiskSummary({ result, className }: RiskSummaryProps) {
 
   return (
     <div className={cn('space-y-6', className)}>
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Risk Assessment Dashboard</h2>
-        <p className="text-gray-600">
+      <div className="animate-fadeIn">
+        <h2 className="text-2xl font-black tracking-tight text-slate-950 dark:text-white mb-2">Risk Assessment Dashboard</h2>
+        <p className="text-slate-600 dark:text-slate-400 font-medium">
           Comprehensive analysis of {result.totalAnalyzed.toLocaleString()} transactions using Benford's Law
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fadeIn">
         <SummaryCard
           title="Overall Assessment"
           value={getAssessmentText(result.overallAssessment)}
@@ -133,38 +138,38 @@ export function RiskSummary({ result, className }: RiskSummaryProps) {
       </div>
 
       {/* Statistical Summary */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Statistical Analysis Summary</h3>
+      <div className="glass-panel rounded-2xl p-6 shadow-xl border border-white/20 dark:border-slate-800/40 animate-fadeIn">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Statistical Analysis Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600 mb-1">
+          <div className="text-center p-4 rounded-xl bg-slate-500/5 border border-slate-500/10">
+            <div className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 mb-1">
               {result.chiSquare.toFixed(2)}
             </div>
-            <div className="text-sm text-gray-600">Chi-Square Statistic</div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Chi-Square Statistic</div>
+            <div className="text-xs text-slate-500 dark:text-slate-500 mt-1 font-medium">
               {result.chiSquare > 15.51 ? 'Significant deviation' : 'Within acceptable range'}
             </div>
           </div>
           
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600 mb-1">
+          <div className="text-center p-4 rounded-xl bg-slate-500/5 border border-slate-500/10">
+            <div className="text-3xl font-extrabold text-purple-600 dark:text-purple-400 mb-1">
               {((result.flaggedTransactions.length / result.totalAnalyzed) * 100).toFixed(1)}%
             </div>
-            <div className="text-sm text-gray-600">Flagged Transaction Rate</div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Flagged Transaction Rate</div>
+            <div className="text-xs text-slate-500 dark:text-slate-500 mt-1 font-medium">
               {result.flaggedTransactions.length} of {result.totalAnalyzed.toLocaleString()}
             </div>
           </div>
           
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600 mb-1">
+          <div className="text-center p-4 rounded-xl bg-slate-500/5 border border-slate-500/10">
+            <div className="text-3xl font-extrabold text-orange-600 dark:text-orange-400 mb-1">
               {result.suspiciousVendors.length > 0 ? 
                 (result.suspiciousVendors.reduce((acc, v) => acc + v.transactionCount, 0) / result.totalAnalyzed * 100).toFixed(1) 
                 : '0.0'
               }%
             </div>
-            <div className="text-sm text-gray-600">Suspicious Vendor Volume</div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Suspicious Vendor Volume</div>
+            <div className="text-xs text-slate-500 dark:text-slate-500 mt-1 font-medium">
               Percentage of total transaction volume
             </div>
           </div>
@@ -173,15 +178,15 @@ export function RiskSummary({ result, className }: RiskSummaryProps) {
 
       {/* Warnings */}
       {result.warnings.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <AlertTriangle className="w-5 h-5 text-amber-600" />
-            <h4 className="font-semibold text-amber-900">Analysis Warnings</h4>
+        <div className="bg-amber-500/10 border border-amber-500/20 dark:border-amber-500/10 rounded-2xl p-5 shadow-lg shadow-amber-500/5 animate-fadeIn">
+          <div className="flex items-center space-x-2.5 mb-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <h4 className="font-bold text-amber-900 dark:text-amber-300">Analysis Warnings</h4>
           </div>
-          <ul className="space-y-1">
+          <ul className="space-y-1.5">
             {result.warnings.map((warning, index) => (
-              <li key={index} className="text-sm text-amber-800 flex items-start space-x-2">
-                <span className="w-1 h-1 bg-amber-600 rounded-full mt-2 flex-shrink-0"></span>
+              <li key={index} className="text-sm text-amber-800 dark:text-amber-400 flex items-start space-x-2 font-medium">
+                <span className="w-1.5 h-1.5 bg-amber-600 dark:bg-amber-400 rounded-full mt-2 flex-shrink-0"></span>
                 <span>{warning}</span>
               </li>
             ))}

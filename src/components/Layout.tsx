@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Settings } from 'lucide-react';
+import { Settings, Zap } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { SettingsPanel } from './SettingsPanel';
 import { StepNavigation } from './StepNavigation';
-import { ToastContainer } from './Toast';
 import { UserDropdown } from './UserDropdown';
 import { useTheme } from '../hooks/useTheme';
-import { useToast } from '../hooks/useToast';
+import { useAuth } from '../hooks/useAuth';
+import { InteractiveMeshBackground } from './ui/InteractiveMeshBackground';
 
 interface LayoutProps {
   children?: ReactNode;
@@ -17,11 +17,10 @@ interface LayoutProps {
 
 export function Layout({ children, className }: LayoutProps) {
   const [showSettings, setShowSettings] = useState(false);
-  const { toasts, dismissToast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
+  const { currentPlan, isPro } = useAuth();
 
-  // Don't show step navigation on login or settings pages
   const showStepNav = !['/login', '/settings'].includes(location.pathname);
 
   const handleLogoClick = () => {
@@ -29,13 +28,22 @@ export function Layout({ children, className }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen relative overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-500">
+      {/* Soft Interactive Background Connection Mesh */}
+      <div className="opacity-45 dark:opacity-65 pointer-events-none">
+        <InteractiveMeshBackground />
+      </div>
+
+      {/* Subtle Floating Ambient Glow Blobs */}
+      <div className="absolute top-10 right-10 w-96 h-96 bg-indigo-400/10 dark:bg-indigo-600/5 rounded-full blur-[100px] animate-drift-slow pointer-events-none z-0" />
+      <div className="absolute bottom-20 left-10 w-[450px] h-[450px] bg-purple-400/10 dark:bg-purple-600/5 rounded-full blur-[120px] animate-drift-slower pointer-events-none z-0" />
+
       {/* Navigation Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
+      <header className="glass-panel sticky top-0 z-40 border-b border-slate-200/50 dark:border-slate-800/40 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo and Title */}
-            <div 
+            <div
               className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={handleLogoClick}
             >
@@ -43,7 +51,7 @@ export function Layout({ children, className }: LayoutProps) {
                 <span className="text-white font-bold text-sm">EA</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white dark:text-white">
                   ExpenseAudit AI
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -53,20 +61,47 @@ export function Layout({ children, className }: LayoutProps) {
             </div>
 
             {/* Navigation Items */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+
+              {/* Upgrade button — only shown to free users */}
+              {!isPro && (
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold
+                    bg-gradient-to-r from-violet-600 to-purple-600
+                    hover:from-violet-700 hover:to-purple-700
+                    text-white transition-all duration-200 shadow-sm"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  Upgrade to Pro
+                </button>
+              )}
+
+              {/* Current plan badge — shown to paid users */}
+              {isPro && (
+                <span className={cn(
+                  'px-2.5 py-1 rounded-full text-xs font-semibold',
+                  currentPlan === 'enterprise'
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                    : 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300'
+                )}>
+                  {currentPlan === 'enterprise' ? '⭐ Enterprise' : '✦ Pro'}
+                </span>
+              )}
+
               {/* Settings Button */}
               <button
                 onClick={() => setShowSettings(true)}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 title="Open settings"
               >
                 <Settings className="w-5 h-5 text-gray-700 dark:text-gray-200" />
               </button>
-              
-              {/* Theme Toggle Button */}
+
+              {/* Theme Toggle */}
               <ThemeToggle />
-              
-              {/* User Dropdown Menu */}
+
+              {/* User Dropdown */}
               <UserDropdown />
             </div>
           </div>
@@ -82,7 +117,7 @@ export function Layout({ children, className }: LayoutProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+      <footer className="glass-panel border-t border-slate-200/50 dark:border-slate-800/40 mt-auto relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center space-x-2">
@@ -101,24 +136,28 @@ export function Layout({ children, className }: LayoutProps) {
 
       {/* Settings Panel */}
       <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
-      
-      {/* Toast Container */}
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
+
 // Theme Toggle Component
 function ThemeToggle() {
-  const { setTheme, isDark } = useTheme();
+  const { setTheme, isDark, updatePreferences } = useTheme();
 
-  const toggleTheme = () => {
-    setTheme(isDark ? 'light' : 'dark');
+  const toggleTheme = async () => {
+    const newTheme = isDark ? 'light' : 'dark';
+    setTheme(newTheme);
+    try {
+      await updatePreferences({ theme: newTheme });
+    } catch {
+      // fail silently — local state already updated
+    }
   };
 
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+      className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
       title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
     >
       {isDark ? (
@@ -133,4 +172,3 @@ function ThemeToggle() {
     </button>
   );
 }
-

@@ -190,8 +190,8 @@ const validateProfileUpdate = [
  */
 const validateAIConfig = [
   body('preferredProvider')
-    .isIn(['openai', 'gemini', 'anthropic', 'azure'])
-    .withMessage('Provider must be openai, gemini, anthropic, or azure'),
+    .isIn(['gemini', 'ollama'])
+    .withMessage('Provider must be gemini or ollama'),
   
   body('model')
     .trim()
@@ -200,28 +200,10 @@ const validateAIConfig = [
   
   body('apiKey')
     .trim()
-    .isLength({ min: 10 })
-    .withMessage('API key must be at least 10 characters'),
-  
-  body('azureEndpoint')
-    .optional()
-    .trim()
     .custom((value, { req }) => {
-      if (req.body.preferredProvider === 'azure' && !value) {
-        throw new Error('Azure endpoint is required for Azure provider');
-      }
-      if (value && !value.match(/^https?:\/\/.+/)) {
-        throw new Error('Azure endpoint must be a valid URL');
-      }
-      return true;
-    }),
-  
-  body('azureDeployment')
-    .optional()
-    .trim()
-    .custom((value, { req }) => {
-      if (req.body.preferredProvider === 'azure' && !value) {
-        throw new Error('Azure deployment name is required for Azure provider');
+      if (req.body.preferredProvider === 'ollama') return true;
+      if (!value || value.length < 10) {
+        throw new Error('API key must be at least 10 characters');
       }
       return true;
     }),

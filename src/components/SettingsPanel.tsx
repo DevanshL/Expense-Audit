@@ -29,15 +29,15 @@ export function SettingsPanel({ isOpen = true, onClose, isStandalone = false }: 
   const content = (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center space-x-2">
           <Settings className="w-5 h-5 text-gray-500" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white dark:text-white">Settings</h2>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-700 transition-colors"
             title="Close settings"
             aria-label="Close settings panel"
           >
@@ -47,7 +47,7 @@ export function SettingsPanel({ isOpen = true, onClose, isStandalone = false }: 
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
+      <div className="border-b border-gray-200 dark:border-gray-700 dark:border-gray-700">
         <nav className="flex space-x-8 px-6">
           {tabs.map(tab => {
             const Icon = tab.icon;
@@ -103,7 +103,7 @@ export function SettingsPanel({ isOpen = true, onClose, isStandalone = false }: 
       />
       
       {/* Panel */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-800 shadow-xl">
+      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-800 dark:bg-gray-800 shadow-xl">
         {content}
       </div>
     </div>
@@ -115,13 +115,13 @@ function ProfileSettings({ user }: { user: UserType | null }) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Profile Information</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white dark:text-white mb-4">Profile Information</h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Name
             </label>
-            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white dark:text-white">
               {user?.name || 'N/A'}
             </div>
           </div>
@@ -129,7 +129,7 @@ function ProfileSettings({ user }: { user: UserType | null }) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Email
             </label>
-            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white dark:text-white">
               {user?.email || 'N/A'}
             </div>
           </div>
@@ -137,7 +137,7 @@ function ProfileSettings({ user }: { user: UserType | null }) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Role
             </label>
-            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+            <div className="p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-700 rounded-md">
               <span className={cn(
                 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize',
                 user?.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
@@ -153,7 +153,7 @@ function ProfileSettings({ user }: { user: UserType | null }) {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Organization
               </label>
-              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white">
+              <div className="p-3 bg-gray-50 dark:bg-gray-900 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white dark:text-white">
                 {user.organization}
               </div>
             </div>
@@ -169,11 +169,11 @@ function SecuritySettings({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Security</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white dark:text-white mb-4">Security</h3>
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg">
             <div>
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white">Session</h4>
+              <h4 className="text-sm font-medium text-gray-900 dark:text-white dark:text-white">Session</h4>
               <p className="text-sm text-gray-500 dark:text-gray-400">Sign out of your current session</p>
             </div>
             <Button variant="outline" size="sm" onClick={onLogout}>
@@ -191,7 +191,7 @@ function PreferencesSettings({ theme, setTheme }: { theme: string; setTheme: (th
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Appearance</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white dark:text-white mb-4">Appearance</h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -212,7 +212,7 @@ function PreferencesSettings({ theme, setTheme }: { theme: string; setTheme: (th
                     onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
                     className="mr-2"
                   />
-                  <span className="text-sm text-gray-900 dark:text-white">{option.label}</span>
+                  <span className="text-sm text-gray-900 dark:text-white dark:text-white">{option.label}</span>
                 </label>
               ))}
             </div>
@@ -228,31 +228,31 @@ function DataSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Data Management</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white dark:text-white mb-4">Data Management</h3>
         <div className="space-y-4">
-          <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Auto-delete uploaded data</h4>
+          <div className="p-4 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-900 dark:text-white dark:text-white mb-2">Auto-delete uploaded data</h4>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
               Automatically delete uploaded files after analysis completion for privacy
             </p>
             <label className="flex items-center">
               <input type="checkbox" className="mr-2" defaultChecked />
-              <span className="text-sm text-gray-900 dark:text-white">Enable auto-delete</span>
+              <span className="text-sm text-gray-900 dark:text-white dark:text-white">Enable auto-delete</span>
             </label>
           </div>
-          <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Export preferences</h4>
+          <div className="p-4 border border-gray-200 dark:border-gray-700 dark:border-gray-700 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-900 dark:text-white dark:text-white mb-2">Export preferences</h4>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
               Default settings for report generation
             </p>
             <div className="space-y-2">
               <label className="flex items-center">
                 <input type="checkbox" className="mr-2" defaultChecked />
-                <span className="text-sm text-gray-900 dark:text-white">Include AI summary in reports</span>
+                <span className="text-sm text-gray-900 dark:text-white dark:text-white">Include AI summary in reports</span>
               </label>
               <label className="flex items-center">
                 <input type="checkbox" className="mr-2" defaultChecked />
-                <span className="text-sm text-gray-900 dark:text-white">Include charts in PDF exports</span>
+                <span className="text-sm text-gray-900 dark:text-white dark:text-white">Include charts in PDF exports</span>
               </label>
             </div>
           </div>

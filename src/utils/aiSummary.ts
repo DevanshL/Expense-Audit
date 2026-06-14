@@ -45,11 +45,14 @@ function analyzeTemporalPatterns(data: CleanedDataRow[]): string[] {
   if (hasDateData) {
     data.forEach(row => {
       if (row.date) {
-        const monthKey = `${row.date.getFullYear()}-${String(row.date.getMonth() + 1).padStart(2, '0')}`;
-        if (!monthlyData.has(monthKey)) {
-          monthlyData.set(monthKey, []);
+        const dateObj = row.date instanceof Date ? row.date : new Date(row.date);
+        if (!isNaN(dateObj.getTime())) {
+          const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+          if (!monthlyData.has(monthKey)) {
+            monthlyData.set(monthKey, []);
+          }
+          monthlyData.get(monthKey)!.push(row);
         }
-        monthlyData.get(monthKey)!.push(row);
       }
     });
 

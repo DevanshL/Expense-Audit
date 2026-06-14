@@ -120,14 +120,7 @@ export async function generateGeminiSummary(
   }
 
   const prompt = createAnalysisPrompt(result, dataset);
-  
-  console.log('Calling Gemini API with:', {
-    model,
-    promptLength: prompt.length,
-    maxTokens,
-    temperature
-  });
-  
+
   try {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     
@@ -175,8 +168,6 @@ export async function generateGeminiSummary(
       ]
     };
 
-    console.log('Sending request to Gemini API...');
-    
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -192,11 +183,6 @@ export async function generateGeminiSummary(
     }
 
     const data = await response.json();
-    console.log('Gemini API response received:', {
-      hasCandidates: !!data.candidates,
-      candidatesLength: data.candidates?.length || 0,
-      responseKeys: Object.keys(data)
-    });
     
     // Enhanced error handling for Gemini API response structure
     if (!data) {
@@ -221,12 +207,6 @@ export async function generateGeminiSummary(
     }
     
     const candidate = data.candidates[0];
-    console.log('Processing candidate:', {
-      hasContent: !!candidate.content,
-      hasParts: !!candidate.content?.parts,
-      partsLength: candidate.content?.parts?.length || 0,
-      finishReason: candidate.finishReason
-    });
 
     if (candidate.finishReason && candidate.finishReason !== 'STOP') {
       console.warn('Candidate finished with reason:', candidate.finishReason);
@@ -250,7 +230,6 @@ export async function generateGeminiSummary(
     }
 
     const generatedText = part.text.trim();
-    console.log('Generated text length:', generatedText.length);
     
     // Parse the structured response
     const summary = parseGeminiResponse(generatedText);

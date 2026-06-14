@@ -78,24 +78,22 @@ class AuthController {
     passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
   }
 
-  googleCallback(req, res, next) {
-    passport.authenticate('google', { session: false }, async (err, user, info) => {
-      try {
-        if (err || !user) {
-          logger.error('Google Auth Error:', err || info);
-          const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
-          return res.redirect(`${frontendURL}/login?error=oauth_failed`);
-        }
-
-        const { accessToken, refreshToken } = await AuthService.login(user, req);
+  async googleCallback(req, res) {
+    try {
+      if (!req.user) {
         const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
-        res.redirect(`${frontendURL}/auth/callback?token=${accessToken}&refresh=${refreshToken}`);
-      } catch (error) {
-        logger.error('Google Callback Exception:', error);
-        const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
-        res.redirect(`${frontendURL}/login?error=server_error`);
+        return res.redirect(`${frontendURL}/login?error=oauth_failed`);
       }
-    })(req, res, next);
+      const { tokens } = await AuthService.login(req.user, req);
+      const { accessToken, refreshToken } = tokens;
+      const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const redirectURL = `${frontendURL}/auth/callback?token=${accessToken}&refresh=${refreshToken}`;
+      res.redirect(redirectURL);
+    } catch (error) {
+      logger.error('Google Callback Exception:', error);
+      const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendURL}/login?error=server_error`);
+    }
   }
 
   async getMe(req, res) {

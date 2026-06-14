@@ -68,7 +68,7 @@ export function FileUpload({ onFileSelect, uploadState, className }: FileUploadP
       return {
         icon: AlertCircle,
         text: uploadState.error,
-        className: 'text-red-600 border-red-300 bg-red-50',
+        className: 'text-red-600 dark:text-red-400 border-red-300 dark:border-red-800/80 bg-red-500/10 dark:bg-red-950/20 shadow-lg shadow-red-500/5',
       };
     }
 
@@ -76,7 +76,7 @@ export function FileUpload({ onFileSelect, uploadState, className }: FileUploadP
       return {
         icon: CheckCircle2,
         text: `File selected: ${uploadState.file.name}`,
-        className: 'text-green-600 border-green-300 bg-green-50',
+        className: 'text-green-600 dark:text-green-400 border-green-300 dark:border-green-800/80 bg-green-500/10 dark:bg-green-950/20 shadow-lg shadow-green-500/5',
       };
     }
 
@@ -86,8 +86,8 @@ export function FileUpload({ onFileSelect, uploadState, className }: FileUploadP
         ? 'Drop your file here...'
         : 'Drop your file here, or click to browse',
       className: isDragActive || dragActive
-        ? 'text-primary-600 border-primary-400 bg-primary-50'
-        : 'text-gray-600 border-gray-300 bg-gray-50',
+        ? 'text-indigo-600 dark:text-indigo-400 border-indigo-400 dark:border-indigo-500 bg-indigo-500/15 dark:bg-indigo-950/30 shadow-lg shadow-indigo-500/5 scale-[1.01]'
+        : 'text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-800/60 bg-white/60 dark:bg-slate-900/60 shadow-md',
     };
   };
 
@@ -99,7 +99,7 @@ export function FileUpload({ onFileSelect, uploadState, className }: FileUploadP
       <div
         {...getRootProps()}
         className={cn(
-          'relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 hover:border-primary-400 hover:bg-primary-50',
+          'relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300 hover:border-indigo-400 hover:shadow-xl hover:shadow-indigo-500/5 active:scale-[0.995]',
           status.className,
           uploadState.isUploading && 'pointer-events-none opacity-50'
         )}
@@ -128,13 +128,13 @@ export function FileUpload({ onFileSelect, uploadState, className }: FileUploadP
 
           {uploadState.isUploading && (
             <div className="w-full max-w-xs">
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
                 <span>Uploading...</span>
                 <span>{Math.round(uploadState.uploadProgress)}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 shadow-inner">
                 <div
-                  className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 h-2 rounded-full transition-all duration-300"
                   style={{ 
                     width: `${uploadState.uploadProgress}%`,
                     transition: 'width 0.3s ease-in-out'
@@ -147,11 +147,11 @@ export function FileUpload({ onFileSelect, uploadState, className }: FileUploadP
       </div>
 
       {uploadState.file && !uploadState.error && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
           <div className="flex items-center space-x-3">
-            <FileText className="w-5 h-5 text-gray-600" />
+            <FileText className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {uploadState.file.name}
               </p>
               <p className="text-xs text-gray-500">

@@ -113,16 +113,16 @@ export function VendorsTable({ vendors, className, onVendorSelect }: VendorsTabl
   };
 
   return (
-    <div className={cn('bg-white rounded-lg border border-gray-200', className)}>
-      <div className="p-6 border-b border-gray-200">
+    <div className={cn('glass-panel border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden shadow-md', className)}>
+      <div className="p-6 border-b border-slate-200/60 dark:border-slate-800/50">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <Users className="w-6 h-6 text-orange-600" />
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Suspicious Vendors Analysis
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Vendors with unusual transaction patterns ({vendors.length} flagged)
               </p>
             </div>
@@ -132,21 +132,21 @@ export function VendorsTable({ vendors, className, onVendorSelect }: VendorsTabl
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search vendors..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 text-sm transition-colors"
             />
           </div>
 
           <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <span className="text-sm text-gray-700">Risk Level:</span>
+            <Filter className="w-4 h-4 text-slate-400" />
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Risk Level:</span>
             {RISK_LEVELS.map(risk => (
-              <label key={risk} className="flex items-center space-x-1 text-sm">
+              <label key={risk} className="flex items-center space-x-1 text-sm cursor-pointer">
                 <input
                   type="checkbox"
                   checked={riskFilter.includes(risk)}
@@ -164,10 +164,10 @@ export function VendorsTable({ vendors, className, onVendorSelect }: VendorsTabl
 
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-800/50">
             <tr>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 onClick={() => handleSort('vendor')}
               >
                 <div className="flex items-center space-x-1">
@@ -176,7 +176,7 @@ export function VendorsTable({ vendors, className, onVendorSelect }: VendorsTabl
                 </div>
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 onClick={() => handleSort('transactionCount')}
               >
                 <div className="flex items-center space-x-1">
@@ -185,7 +185,7 @@ export function VendorsTable({ vendors, className, onVendorSelect }: VendorsTabl
                 </div>
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 onClick={() => handleSort('mad')}
               >
                 <div className="flex items-center space-x-1">
@@ -194,7 +194,7 @@ export function VendorsTable({ vendors, className, onVendorSelect }: VendorsTabl
                 </div>
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 onClick={() => handleSort('chiSquare')}
               >
                 <div className="flex items-center space-x-1">
@@ -203,7 +203,7 @@ export function VendorsTable({ vendors, className, onVendorSelect }: VendorsTabl
                 </div>
               </th>
               <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                 onClick={() => handleSort('riskLevel')}
               >
                 <div className="flex items-center space-x-1">
@@ -211,57 +211,57 @@ export function VendorsTable({ vendors, className, onVendorSelect }: VendorsTabl
                   <SortIcon field="riskLevel" />
                 </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Suspicious Patterns
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/50">
             {sortedAndFilteredVendors.map((vendor, index) => (
               <tr 
                 key={vendor.vendor + index}
                 className={cn(
-                  'hover:bg-gray-50 transition-colors',
+                  'hover:bg-indigo-500/5 dark:hover:bg-indigo-500/5 transition-colors',
                   onVendorSelect && 'cursor-pointer'
                 )}
                 onClick={() => onVendorSelect?.(vendor)}
               >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                <td className="px-5 py-4 whitespace-nowrap">
+                  <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                     {vendor.vendor}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                <td className="px-5 py-4 whitespace-nowrap">
+                  <div className="text-sm text-slate-600 dark:text-slate-300">
                     {vendor.transactionCount.toLocaleString()}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-5 py-4 whitespace-nowrap">
                   <div className={cn(
-                    'text-sm font-medium',
-                    vendor.mad > 15 ? 'text-red-600' : vendor.mad > 8 ? 'text-amber-600' : 'text-green-600'
+                    'text-sm font-bold',
+                    vendor.mad > 15 ? 'text-red-500 dark:text-red-400' : vendor.mad > 8 ? 'text-amber-500 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
                   )}>
                     {vendor.mad.toFixed(2)}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-5 py-4 whitespace-nowrap">
                   <div className={cn(
-                    'text-sm font-medium',
-                    vendor.chiSquare > 15.51 ? 'text-red-600' : vendor.chiSquare > 10 ? 'text-amber-600' : 'text-green-600'
+                    'text-sm font-bold',
+                    vendor.chiSquare > 15.51 ? 'text-red-500 dark:text-red-400' : vendor.chiSquare > 10 ? 'text-amber-500 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
                   )}>
                     {vendor.chiSquare.toFixed(2)}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-5 py-4 whitespace-nowrap">
                   <span className={cn(
-                    'inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize',
+                    'inline-flex px-2.5 py-1 text-xs font-bold rounded-full capitalize',
                     getRiskColor(vendor.riskLevel)
                   )}>
                     {vendor.riskLevel}
                   </span>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 max-w-xs">
+                <td className="px-5 py-4">
+                  <div className="text-sm text-slate-600 dark:text-slate-300 max-w-xs">
                     {vendor.suspiciousPatterns.length > 0 ? (
                       <div className="space-y-1">
                         {vendor.suspiciousPatterns.slice(0, 2).map((pattern, i) => (
@@ -287,9 +287,9 @@ export function VendorsTable({ vendors, className, onVendorSelect }: VendorsTabl
         </table>
 
         {sortedAndFilteredVendors.length === 0 && (
-          <div className="text-center py-8">
-            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No vendors match your current filters</p>
+          <div className="text-center py-12">
+            <Users className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">No vendors match your current filters</p>
           </div>
         )}
       </div>

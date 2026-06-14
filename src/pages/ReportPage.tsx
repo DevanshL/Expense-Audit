@@ -3,6 +3,7 @@ import { Step4AISummary } from '../components/Step4AISummary';
 import { useDataStore } from '../hooks/useDataStore';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import { PlanGuard } from '../components/PlanGuard';
 
 export function ReportPage() {
   const navigate = useNavigate();
@@ -29,12 +30,15 @@ export function ReportPage() {
 
   return (
     <div className="min-h-screen py-8 px-4">
-      <Step4AISummary
-        dataset={dataset}
-        onBack={handleBack}
-        onContinue={handleContinue}
-        className="min-h-full"
-      />
+      <PlanGuard required="pro" onBack={handleBack}>
+        <Step4AISummary
+          dataset={dataset}
+          onBack={handleBack}
+          onContinue={handleContinue}
+          className="min-h-full"
+        />
+      </PlanGuard>
     </div>
   );
 }
+

@@ -55,8 +55,8 @@ export function AuthCallbackPage() {
         </div>
 
         {/* Content */}
-        <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">ExpenseAudit AI</h1>
+        <div className="bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 border border-gray-100">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">ExpenseAudit AI</h1>
           <div className="space-y-4">
             <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
             <p className="text-lg text-gray-700 font-medium">Authenticating...</p>
